@@ -22,6 +22,7 @@
     "@eslint/js": "^10.0.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/hpp": "^0.2.7",
     "@types/node": "^26.4.1",
     "eslint": "^10.10.0",
     "eslint-config-prettier": "^10.1.8",
@@ -38,6 +39,11 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "hal-response": "^0.1.2"
+    "hal-response": "^0.1.2",
+    "helmet": "^8.3.0",
+    "hpp": "^0.2.3",
+    "pg": "^8.23.0",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.8"
   }
 }

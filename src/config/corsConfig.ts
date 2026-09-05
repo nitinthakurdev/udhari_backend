@@ -1,5 +1,5 @@
 import type { CorsOptions } from "cors";
-import { config } from "@/config/envConfig";
+import { config } from "./envConfig";
 
 type StaticOrigin = boolean | string | RegExp | (boolean | string | RegExp)[];
 type OriginCallback = (error: Error | null, allowedOrigin?: StaticOrigin) => void;

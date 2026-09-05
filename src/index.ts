@@ -1,5 +1,5 @@
 import express from "express";
-import { Start } from "@/server";
+import { Start } from "./server";
 
 const initServer = () => {
   const app = express();
