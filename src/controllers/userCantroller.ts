@@ -53,6 +53,10 @@ export const signin = AsyncHandler(async (req, res): Promise<void> => {
   const isPasswordValid = await bcrypt.compare(data.password, user.password);
   if (!isPasswordValid) {
     throw new UnauthorizedError(errorMessages.USER.INVALID_CREDENTIALS);
+  };
+
+  if(!user.is_email_verified){
+    throw new BadRequestError(errorMessages.USER.ACCOUNT_NOT_VERIFIED)
   }
 
   const jwtSecret = config.JWT_TOKEN;
