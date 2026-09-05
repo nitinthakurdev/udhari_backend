@@ -15,6 +15,8 @@ import { HalError, type SerializedErrorResponse } from "hal-response";
 import { appRouter } from "@/routes";
 import { dbConnection } from "./config/dbConfig";
 import { StatusCodes } from "http-status-codes";
+import compressor from 'compression';
+import cookieParser from "cookie-parser"
 
 const SERVER_PORT = 4001;
 
@@ -32,6 +34,8 @@ function securityMiddleware(app: Application): void {
   app.use(helmet());
   app.use(hpp());
   app.use(cors(corsOptions));
+  app.use(compressor());
+  app.use(cookieParser());
 }
 
 function standardMiddleware(app: Application): void {

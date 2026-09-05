@@ -16,7 +16,7 @@ export interface IUserSchema {
   otp: string | null;
   otp_expiry: Date | null;
   score: number;
-  password: string;
+  password: string | null;
   created_by: number | null;
   created_at: Date;
   updated_at: Date;
@@ -51,6 +51,11 @@ export interface IUserCreatePayload {
   username: string;
   phone: string;
   dial_code?: string | null;
+  password: string;
+}
+
+export interface IUserSigninPayload {
+  identifier: string;
   password: string;
 }
 

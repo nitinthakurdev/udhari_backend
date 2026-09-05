@@ -1,5 +1,7 @@
 {
-    "USER":{
-        "ALREADY_EXIST":"User already exists. Please try different credentials."
-    }
+  "USER": {
+    "ALREADY_EXIST": "User already exists. Please try different credentials.",
+    "INVALID_CREDENTIALS": "Invalid email, username, or password.",
+    "AUTH_CONFIGURATION_ERROR": "Authentication is not configured."
+  }
 }

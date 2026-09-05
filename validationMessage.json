@@ -1,6 +1,7 @@
 {
   "USER": {
     "SIGNUP_VALIDATION_FAILED": "Please correct the invalid sign-up details.",
+    "SIGNIN_VALIDATION_FAILED": "Please correct the invalid sign-in details.",
     "FIRST_NAME_REQUIRED": "First name is required.",
     "FIRST_NAME_MIN_LENGTH": "First name must contain at least 2 characters.",
     "FIRST_NAME_MAX_LENGTH": "First name cannot contain more than 50 characters.",
@@ -14,6 +15,8 @@
     "USERNAME_MIN_LENGTH": "Username must contain at least 3 characters.",
     "USERNAME_MAX_LENGTH": "Username cannot contain more than 30 characters.",
     "USERNAME_INVALID": "Username can contain only letters, numbers, and underscores.",
+    "IDENTIFIER_REQUIRED": "Email address or username is required.",
+    "IDENTIFIER_INVALID": "Enter a valid email address or username.",
     "PHONE_REQUIRED": "Phone number is required.",
     "PHONE_INVALID": "Phone number must contain between 7 and 15 digits.",
     "PASSWORD_REQUIRED": "Password is required.",

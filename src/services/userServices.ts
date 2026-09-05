@@ -2,7 +2,7 @@ import { userModel } from "@/models/userModel";
 import type { IUserCreatePayload, IUserPublic, IUserSchema } from "@/types/userTypes";
 import { Op } from "sequelize";
 
-const toPublicUser = (user: IUserSchema): IUserPublic => ({
+export const toPublicUser = (user: IUserSchema): IUserPublic => ({
   uuid: user.uuid,
   first_name: user.first_name,
   last_name: user.last_name,
@@ -24,5 +24,15 @@ export const createUser = async (data: IUserCreatePayload): Promise<IUserPublic>
 
 export const findUserByEmailOrUsername = async (email: string, username: string) => {
   const result = await userModel.findOne({ where: { [Op.or]: [{ email }, { username }] } });
+  return result?.dataValues;
+};
+
+export const findUserByIdentifier = async (
+  identifier: string,
+): Promise<IUserSchema | undefined> => {
+  const result = await userModel.findOne({
+    where: { [Op.or]: [{ email: identifier }, { username: identifier }] },
+  });
+
   return result?.dataValues;
 };

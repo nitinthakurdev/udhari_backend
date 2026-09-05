@@ -1,11 +1,21 @@
 import {
   createUser as createUserService,
   findUserByEmailOrUsername,
+  findUserByIdentifier,
+  toPublicUser,
 } from "@/services/userServices";
-import type { IUserCreatePayload } from "@/types/userTypes";
-import { AsyncHandler, BadRequestError, HalSuccess } from "hal-response";
+import type { IUserCreatePayload, IUserSigninPayload } from "@/types/userTypes";
+import { config } from "@/config/envConfig";
+import {
+  AsyncHandler,
+  BadRequestError,
+  HalSuccess,
+  InternalServerError,
+  UnauthorizedError,
+} from "hal-response";
 import { StatusCodes } from "http-status-codes";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import successMessages from "../../successMessages.json";
 import errorMessages from "../../errorMessages.json";
 
@@ -29,5 +39,67 @@ export const signup = AsyncHandler(async (req, res): Promise<void> => {
       message: successMessages.USER.USER_CREATED,
       ...(requestId ? { requestId } : {}),
     }),
+  );
+});
+
+export const signin = AsyncHandler(async (req, res): Promise<void> => {
+  const data = req.body as IUserSigninPayload;
+  const user = await findUserByIdentifier(data.identifier);
+
+  if (!user?.password) {
+    throw new UnauthorizedError(errorMessages.USER.INVALID_CREDENTIALS);
+  }
+
+  const isPasswordValid = await bcrypt.compare(data.password, user.password);
+  if (!isPasswordValid) {
+    throw new UnauthorizedError(errorMessages.USER.INVALID_CREDENTIALS);
+  }
+
+  const jwtSecret = config.JWT_TOKEN;
+  if (!jwtSecret) {
+    throw new InternalServerError(errorMessages.USER.AUTH_CONFIGURATION_ERROR);
+  }
+
+  const accessToken = jwt.sign(
+    {
+      email: user.email,
+      username: user.username,
+    },
+    jwtSecret,
+    {
+      subject: user.uuid,
+      expiresIn: "7d",
+    },
+  );
+
+  const refreshToken = jwt.sign(
+    {
+      email: user.email,
+      username: user.username,
+    },
+    jwtSecret,
+    {
+      subject: user.uuid,
+      expiresIn: "30d",
+    },
+  );
+
+  res.cookie("AT", accessToken);
+  res.cookie("RT", refreshToken);
+
+  const requestId = req.header("x-request-id");
+
+  res.status(StatusCodes.OK).json(
+    response.ok(
+      {
+        user: toPublicUser(user),
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      },
+      {
+        message: successMessages.USER.USER_SIGNED_IN,
+        ...(requestId ? { requestId } : {}),
+      },
+    ),
   );
 });

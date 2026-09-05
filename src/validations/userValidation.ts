@@ -68,3 +68,29 @@ export const validateSignup = validateRequest({
   body: signupValidationPayload,
   errorMessage: userValidationMessages.SIGNUP_VALIDATION_FAILED,
 });
+
+export const signinValidationPayload = z.strictObject(
+  {
+    identifier: z
+      .string({ error: userValidationMessages.IDENTIFIER_REQUIRED })
+      .trim()
+      .toLowerCase()
+      .min(1, { error: userValidationMessages.IDENTIFIER_REQUIRED })
+      .max(254, { error: userValidationMessages.IDENTIFIER_INVALID })
+      .refine(
+        (identifier) =>
+          z.email().safeParse(identifier).success || /^[a-zA-Z0-9_]{3,30}$/.test(identifier),
+        { error: userValidationMessages.IDENTIFIER_INVALID },
+      ),
+    password: z
+      .string({ error: userValidationMessages.PASSWORD_REQUIRED })
+      .min(1, { error: userValidationMessages.PASSWORD_REQUIRED })
+      .max(72, { error: userValidationMessages.PASSWORD_MAX_LENGTH }),
+  },
+  { error: userValidationMessages.UNKNOWN_FIELDS },
+);
+
+export const validateSignin = validateRequest({
+  body: signinValidationPayload,
+  errorMessage: userValidationMessages.SIGNIN_VALIDATION_FAILED,
+});
