@@ -14,6 +14,7 @@ import { corsOptions } from "./config/corsConfig";
 import { HalError, type SerializedErrorResponse } from "hal-response";
 import { appRouter } from "@/routes";
 import { dbConnection } from "./config/dbConfig";
+import { StatusCodes } from "http-status-codes";
 
 const SERVER_PORT = 4001;
 
@@ -42,7 +43,7 @@ function routesHandler(app: Application): void {
   app.use("/health", (_req: Request, res: Response) =>
     res.send("Server is up and running \n Server is healthy and ok"),
   );
-  app.use("/api/v1", appRouter);
+  app.use("/api/v1", appRouter());
 };
 
 
@@ -53,7 +54,7 @@ function connectionsHandler() {
 function errorHandler(app: Application): void {
   app.use("/", (req: Request, res: Response) => {
     const fullUrl = `https://${req.host}${req.originalUrl}`;
-    res.status(404).json({
+    res.status(StatusCodes.NOT_FOUND).json({
       message: "Route not found",
       route: fullUrl,
       success: false,

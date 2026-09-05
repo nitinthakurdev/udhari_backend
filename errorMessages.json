@@ -1,0 +1,5 @@
+{
+    "USER":{
+        "ALREADY_EXIST":"User already exists. Please try different credentials."
+    }
+}

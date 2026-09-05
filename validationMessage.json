@@ -1,0 +1,28 @@
+{
+  "USER": {
+    "SIGNUP_VALIDATION_FAILED": "Please correct the invalid sign-up details.",
+    "FIRST_NAME_REQUIRED": "First name is required.",
+    "FIRST_NAME_MIN_LENGTH": "First name must contain at least 2 characters.",
+    "FIRST_NAME_MAX_LENGTH": "First name cannot contain more than 50 characters.",
+    "FIRST_NAME_INVALID": "First name can contain only letters, spaces, apostrophes, and hyphens.",
+    "LAST_NAME_MAX_LENGTH": "Last name cannot contain more than 50 characters.",
+    "LAST_NAME_INVALID": "Last name can contain only letters, spaces, apostrophes, and hyphens.",
+    "EMAIL_REQUIRED": "Email address is required.",
+    "EMAIL_INVALID": "Enter a valid email address.",
+    "EMAIL_MAX_LENGTH": "Email address cannot contain more than 254 characters.",
+    "USERNAME_REQUIRED": "Username is required.",
+    "USERNAME_MIN_LENGTH": "Username must contain at least 3 characters.",
+    "USERNAME_MAX_LENGTH": "Username cannot contain more than 30 characters.",
+    "USERNAME_INVALID": "Username can contain only letters, numbers, and underscores.",
+    "PHONE_REQUIRED": "Phone number is required.",
+    "PHONE_INVALID": "Phone number must contain between 7 and 15 digits.",
+    "PASSWORD_REQUIRED": "Password is required.",
+    "PASSWORD_MIN_LENGTH": "Password must contain at least 8 characters.",
+    "PASSWORD_MAX_LENGTH": "Password cannot contain more than 72 characters.",
+    "PASSWORD_LOWERCASE": "Password must contain at least one lowercase letter.",
+    "PASSWORD_UPPERCASE": "Password must contain at least one uppercase letter.",
+    "PASSWORD_NUMBER": "Password must contain at least one number.",
+    "PASSWORD_SPECIAL_CHARACTER": "Password must contain at least one special character.",
+    "UNKNOWN_FIELDS": "Request contains an unsupported field."
+  }
+}
