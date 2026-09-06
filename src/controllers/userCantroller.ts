@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await */
 import {
   createUser as createUserService,
   findUserByEmailOrUsername,
@@ -15,7 +16,6 @@ import {
   UnauthorizedError,
 } from "hal-response";
 import { StatusCodes } from "http-status-codes";
-import type { RequestHandler } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import successMessages from "../../successMessages.json";
@@ -135,7 +135,7 @@ export const signin = AsyncHandler(async (req, res): Promise<void> => {
  ************************** sign up api code start here ***************************************
  ===============================================================================================
  */
-export const loginUserDetails: RequestHandler = (req, res): void => {
+export const loginUserDetails = AsyncHandler(async (req, res):Promise<void> => {
   const user = req.currentUser;
 
   if (!user) {
@@ -150,4 +150,22 @@ export const loginUserDetails: RequestHandler = (req, res): void => {
       ...(requestId ? { requestId } : {}),
     }),
   );
-};
+});
+
+/*
+ ===============================================================================================
+ ************************** sign up api code start here ***************************************
+ ===============================================================================================
+ */
+export const logoutUser = AsyncHandler(async (req,res):Promise<void> => {
+
+  const user = req.currentUser;
+  if(!user){
+    throw new UnauthorizedError(errorMessages.AUTHORIZATION.USER_UNAUTHORIZED);
+  };
+
+  res.clearCookie("AT").clearCookie("RT").status(StatusCodes.ACCEPTED).json(response.accepted(null,{
+    message:successMessages.USER.LOGOUT_USER,
+  }))
+
+})

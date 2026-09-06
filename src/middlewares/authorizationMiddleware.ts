@@ -14,13 +14,8 @@ const isAccessTokenPayload = (payload: string | JwtPayload): payload is AccessTo
 
 export const authorization = AsyncHandler(
   async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
-    const cookies = req.cookies as Record<string, unknown> | undefined;
-    const cookieToken = cookies?.["AT"];
-    const authorizationHeader = req.header("authorization");
-    const bearerToken = authorizationHeader?.startsWith("Bearer ")
-      ? authorizationHeader.slice(7).trim()
-      : undefined;
-    const accessToken = typeof cookieToken === "string" ? cookieToken : bearerToken;
+    const accessToken = (req.cookies["AT"]  ?? req.headers.authorization?.split(" ")[1]) as string | undefined ;
+   
 
     if (!accessToken) {
       throw new UnauthorizedError(errorMessages.AUTHORIZATION.TOKEN_NOT_FOUND);

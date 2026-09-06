@@ -2,7 +2,8 @@
   "USER": {
     "USER_CREATED": "User created successfully.",
     "USER_SIGNED_IN": "User signed in successfully.",
-    "CURRENT_USER_FETCHED": "Current user details fetched successfully."
+    "CURRENT_USER_FETCHED": "Current user details fetched successfully.",
+    "LOGOUT_USER":"User logout successfully"
   },
   "ROLE": {
     "ROLE_CREATED": "Role created successfully."
