@@ -4,7 +4,7 @@ export interface IRoleSchema {
   id: number;
   uuid: string;
   name: string;
-  slag: string;
+  slug: string;
   created_by: number | null;
   updated_by: number | null;
   deleted_by: number | null;
@@ -27,7 +27,7 @@ export type RoleCreationSchema = Optional<
 
 export interface IRoleModel extends Model<IRoleSchema, RoleCreationSchema>, IRoleSchema {}
 
-export type IRoleCreatePayload = Pick<IRoleSchema, "name" | "slag"> &
+export type IRoleCreatePayload = Pick<IRoleSchema, "name" | "slug"> &
   Partial<Pick<IRoleSchema, "created_by">>;
 
-export type IRolePublic = Pick<IRoleSchema, "uuid" | "name" | "slag" | "created_at" | "updated_at">;
+export type IRolePublic = Pick<IRoleSchema, "uuid" | "name" | "slug" | "created_at" | "updated_at">;

@@ -9,7 +9,7 @@ const response = new HalSuccess();
 
 export const createRole = AsyncHandler(async (req, res): Promise<void> => {
   const data = req.body as IRoleCreatePayload;
-  const existingRole = await findRoleByNameOrSlag(data.name, data.slag);
+  const existingRole = await findRoleByNameOrSlag(data.name, data.slug);
 
   if (existingRole) {
     throw new BadRequestError(errorMessages.ROLE.ALREADY_EXIST);

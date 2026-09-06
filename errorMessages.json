@@ -1,4 +1,16 @@
 {
+  "AUTHORIZATION": {
+    "TOKEN_NOT_FOUND": "Authorization token is required.",
+    "TOKEN_INVALID": "Invalid authorization token.",
+    "TOKEN_EXPIRED": "Authorization token has expired.",
+    "TOKEN_MALFORMED": "Invalid authorization token format.",
+    "USER_NOT_FOUND": "User associated with this token was not found.",
+    "USER_INACTIVE": "Your account is inactive. Please contact support.",
+    "USER_UNAUTHORIZED": "You are not authorized to perform this action.",
+    "ACCESS_DENIED": "Access denied.",
+    "AUTHENTICATION_REQUIRED": "Authentication is required to access this resource.",
+    "AUTHORIZATION_FAILED": "Authorization failed."
+  },
   "USER": {
     "ALREADY_EXIST": "User already exists. Please try different credentials.",
     "INVALID_CREDENTIALS": "Invalid email, username, or password.",

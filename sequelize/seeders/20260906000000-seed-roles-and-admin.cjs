@@ -4,9 +4,9 @@ const { randomUUID } = require("node:crypto");
 const { Op, QueryTypes } = require("sequelize");
 
 const ROLE_SEEDS = [
-  { name: "Admin", slag: "admin" },
-  { name: "User", slag: "user" },
-  { name: "Organization", slag: "organization" },
+  { name: "Admin", slug: "admin" },
+  { name: "User", slug: "user" },
+  { name: "Organization", slug: "organization" },
 ];
 
 const ADMIN_SEED = {
@@ -23,21 +23,21 @@ module.exports = {
   async up(queryInterface) {
     await queryInterface.sequelize.transaction(async (transaction) => {
       const existingRoles = await queryInterface.sequelize.query(
-        "SELECT name, slag FROM roles WHERE slag IN (:slags) OR name IN (:names)",
+        "SELECT name, slug FROM roles WHERE slug IN (:slugs) OR name IN (:names)",
         {
           replacements: {
             names: ROLE_SEEDS.map((role) => role.name),
-            slags: ROLE_SEEDS.map((role) => role.slag),
+            slugs: ROLE_SEEDS.map((role) => role.slug),
           },
           type: QueryTypes.SELECT,
           transaction,
         },
       );
       const existingNames = new Set(existingRoles.map((role) => role.name));
-      const existingSlags = new Set(existingRoles.map((role) => role.slag));
+      const existingslugs = new Set(existingRoles.map((role) => role.slug));
       const now = new Date();
       const rolesToCreate = ROLE_SEEDS.filter(
-        (role) => !existingNames.has(role.name) && !existingSlags.has(role.slag),
+        (role) => !existingNames.has(role.name) && !existingslugs.has(role.slug),
       ).map((role) => ({
         uuid: randomUUID(),
         ...role,
@@ -54,9 +54,9 @@ module.exports = {
       }
 
       const adminRole = await queryInterface.sequelize.query(
-        "SELECT id FROM roles WHERE slag = :slag LIMIT 1",
+        "SELECT id FROM roles WHERE slug = :slug LIMIT 1",
         {
-          replacements: { slag: "admin" },
+          replacements: { slug: "admin" },
           type: QueryTypes.SELECT,
           transaction,
         },
@@ -115,7 +115,7 @@ module.exports = {
       );
       await queryInterface.bulkDelete(
         "roles",
-        { slag: { [Op.in]: ROLE_SEEDS.map((role) => role.slag) } },
+        { slug: { [Op.in]: ROLE_SEEDS.map((role) => role.slug) } },
         { transaction },
       );
     });

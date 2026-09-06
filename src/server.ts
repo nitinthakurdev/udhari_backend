@@ -18,6 +18,10 @@ import { StatusCodes } from "http-status-codes";
 import compressor from "compression";
 import cookieParser from "cookie-parser";
 
+
+// ---------- all associations import below here ---------
+import "./association/userAssociation"
+
 const SERVER_PORT = 4001;
 
 export const Start = (app: Application): void => {

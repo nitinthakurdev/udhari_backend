@@ -5,7 +5,7 @@ import { Op } from "sequelize";
 export const toPublicRole = (role: IRoleSchema): IRolePublic => ({
   uuid: role.uuid,
   name: role.name,
-  slag: role.slag,
+  slug: role.slug,
   created_at: role.created_at,
   updated_at: role.updated_at,
 });
@@ -17,16 +17,16 @@ export const createRole = async (data: IRoleCreatePayload): Promise<IRolePublic>
 
 export const findRoleByNameOrSlag = async (
   name: string,
-  slag: string,
+  slug: string,
 ): Promise<IRoleSchema | undefined> => {
   const result = await roleModel.findOne({
-    where: { [Op.or]: [{ name }, { slag }] },
+    where: { [Op.or]: [{ name }, { slug }] },
   });
 
   return result?.dataValues;
 };
 
-export const findRoleBySlag = async (slag: string): Promise<IRoleSchema | undefined> => {
-  const result = await roleModel.findOne({ where: { slag } });
+export const findRoleBySlag = async (slug: string): Promise<IRoleSchema | undefined> => {
+  const result = await roleModel.findOne({ where: { slug } });
   return result?.dataValues;
 };

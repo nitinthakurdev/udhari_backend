@@ -11,7 +11,7 @@ export const createRoleValidationPayload = z.strictObject(
       .trim()
       .min(2, { error: roleValidationMessages.NAME_MIN_LENGTH })
       .max(50, { error: roleValidationMessages.NAME_MAX_LENGTH }),
-    slag: z
+    slug: z
       .string({ error: roleValidationMessages.SLAG_REQUIRED })
       .trim()
       .toLowerCase()

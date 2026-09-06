@@ -15,6 +15,7 @@ import {
   UnauthorizedError,
 } from "hal-response";
 import { StatusCodes } from "http-status-codes";
+import type { RequestHandler } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import successMessages from "../../successMessages.json";
@@ -22,6 +23,11 @@ import errorMessages from "../../errorMessages.json";
 
 const response = new HalSuccess();
 
+/*
+ ===============================================================================================
+ ************************** logged-in user details api code start here ************************
+ ===============================================================================================
+ */
 export const signup = AsyncHandler(async (req, res): Promise<void> => {
   const data = req.body as IUserCreatePayload;
 
@@ -53,6 +59,11 @@ export const signup = AsyncHandler(async (req, res): Promise<void> => {
   );
 });
 
+/*
+ ===============================================================================================
+ ************************** sign in api code start here ***************************************
+ ===============================================================================================
+ */
 export const signin = AsyncHandler(async (req, res): Promise<void> => {
   const data = req.body as IUserSigninPayload;
   const user = await findUserByIdentifier(data.identifier);
@@ -118,3 +129,25 @@ export const signin = AsyncHandler(async (req, res): Promise<void> => {
     ),
   );
 });
+
+/*
+ ===============================================================================================
+ ************************** sign up api code start here ***************************************
+ ===============================================================================================
+ */
+export const loginUserDetails: RequestHandler = (req, res): void => {
+  const user = req.currentUser;
+
+  if (!user) {
+    throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
+  }
+
+  const requestId = req.header("x-request-id");
+
+  res.status(StatusCodes.OK).json(
+    response.ok(user, {
+      message: successMessages.USER.CURRENT_USER_FETCHED,
+      ...(requestId ? { requestId } : {}),
+    }),
+  );
+};

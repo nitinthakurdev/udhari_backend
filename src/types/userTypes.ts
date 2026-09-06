@@ -64,6 +64,21 @@ export interface IUserSigninPayload {
   password: string;
 }
 
+export type ICurrentUser = Pick<
+  IUserSchema,
+  | "uuid"
+  | "first_name"
+  | "last_name"
+  | "email"
+  | "username"
+  | "phone"
+  | "dial_code"
+  | "is_email_verified"
+  | "is_phone_verified"
+  | "role_id"
+  | "created_at"
+>;
+
 export type IUserPublic = Pick<
   IUserSchema,
   | "uuid"

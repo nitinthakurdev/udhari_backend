@@ -1,3 +1,4 @@
+
 import { sequelize } from "@/config/dbConfig";
 import type { IRoleModel } from "@/types/roleTypes";
 import { DataTypes } from "sequelize";
@@ -18,7 +19,7 @@ const roleModel = sequelize.define<IRoleModel>(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    slag: {
+    slug: {
       type: DataTypes.STRING,
       allowNull: false,
     },
@@ -60,20 +61,12 @@ const roleModel = sequelize.define<IRoleModel>(
         unique: true,
         fields: ["uuid"],
       },
-      {
-        name: "roles_name_unique",
-        unique: true,
-        fields: ["name"],
-      },
-      {
-        name: "roles_slag_unique",
-        unique: true,
-        fields: ["slag"],
-      },
     ],
   },
 );
 
+
 void roleModel.sync();
+
 
 export { roleModel };
