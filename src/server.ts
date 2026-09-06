@@ -15,8 +15,8 @@ import { HalError, type SerializedErrorResponse } from "hal-response";
 import { appRouter } from "@/routes";
 import { dbConnection } from "./config/dbConfig";
 import { StatusCodes } from "http-status-codes";
-import compressor from 'compression';
-import cookieParser from "cookie-parser"
+import compressor from "compression";
+import cookieParser from "cookie-parser";
 
 const SERVER_PORT = 4001;
 
@@ -48,11 +48,10 @@ function routesHandler(app: Application): void {
     res.send("Server is up and running \n Server is healthy and ok"),
   );
   app.use("/api/v1", appRouter());
-};
-
+}
 
 function connectionsHandler() {
-  void dbConnection()
+  void dbConnection();
 }
 
 function errorHandler(app: Application): void {

@@ -8,7 +8,7 @@ if (!config.DATABASE_URL) {
 export const sequelize = new Sequelize(config.DATABASE_URL, {
   dialect: "postgres",
   logging: config.NODE_ENV === "development" ? console.log : false,
-  timezone:"Asia/kolkata"
+  timezone: "Asia/kolkata",
 });
 
 export const dbConnection = async (): Promise<void> => {

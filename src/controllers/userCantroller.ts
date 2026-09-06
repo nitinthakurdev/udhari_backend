@@ -4,6 +4,7 @@ import {
   findUserByIdentifier,
   toPublicUser,
 } from "@/services/userServices";
+import { findRoleBySlag } from "@/services/roleServices";
 import type { IUserCreatePayload, IUserSigninPayload } from "@/types/userTypes";
 import { config } from "@/config/envConfig";
 import {
@@ -30,7 +31,17 @@ export const signup = AsyncHandler(async (req, res): Promise<void> => {
   }
 
   const hashedPassword = await bcrypt.hash(data.password, 10);
-  const user = await createUserService({ ...data, password: hashedPassword });
+  const defaultRole = await findRoleBySlag("user");
+
+  if (!defaultRole) {
+    throw new InternalServerError(errorMessages.USER.DEFAULT_ROLE_NOT_FOUND);
+  }
+
+  const user = await createUserService({
+    ...data,
+    password: hashedPassword,
+    role_id: defaultRole.id,
+  });
 
   const requestId = req.header("x-request-id");
 
@@ -53,10 +64,10 @@ export const signin = AsyncHandler(async (req, res): Promise<void> => {
   const isPasswordValid = await bcrypt.compare(data.password, user.password);
   if (!isPasswordValid) {
     throw new UnauthorizedError(errorMessages.USER.INVALID_CREDENTIALS);
-  };
+  }
 
-  if(!user.is_email_verified){
-    throw new BadRequestError(errorMessages.USER.ACCOUNT_NOT_VERIFIED)
+  if (!user.is_email_verified) {
+    throw new BadRequestError(errorMessages.USER.ACCOUNT_NOT_VERIFIED);
   }
 
   const jwtSecret = config.JWT_TOKEN;

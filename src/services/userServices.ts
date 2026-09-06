@@ -1,5 +1,5 @@
 import { userModel } from "@/models/userModel";
-import type { IUserCreatePayload, IUserPublic, IUserSchema } from "@/types/userTypes";
+import type { IUserCreateData, IUserPublic, IUserSchema } from "@/types/userTypes";
 import { Op } from "sequelize";
 
 export const toPublicUser = (user: IUserSchema): IUserPublic => ({
@@ -17,7 +17,7 @@ export const toPublicUser = (user: IUserSchema): IUserPublic => ({
   updated_at: user.updated_at,
 });
 
-export const createUser = async (data: IUserCreatePayload): Promise<IUserPublic> => {
+export const createUser = async (data: IUserCreateData): Promise<IUserPublic> => {
   const result = await userModel.create(data);
   return toPublicUser(result.dataValues);
 };

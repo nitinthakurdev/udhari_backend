@@ -26,9 +26,9 @@ const userModel = sequelize.define<IUserModel>(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    dial_code:{
-      type:DataTypes.STRING,
-      defaultValue:"+91"
+    dial_code: {
+      type: DataTypes.STRING,
+      defaultValue: "+91",
     },
     username: {
       type: DataTypes.STRING,
@@ -71,6 +71,10 @@ const userModel = sequelize.define<IUserModel>(
       allowNull: false,
       defaultValue: 0,
     },
+    role_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
     created_by: {
       type: DataTypes.INTEGER,
       allowNull: true,
@@ -94,6 +98,7 @@ const userModel = sequelize.define<IUserModel>(
     createdAt: "created_at",
     updatedAt: "updated_at",
     deletedAt: "deleted_at",
+    tableName: "users",
     indexes: [
       {
         name: "users_uuid_unique",

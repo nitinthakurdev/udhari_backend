@@ -3,6 +3,10 @@
     "ALREADY_EXIST": "User already exists. Please try different credentials.",
     "INVALID_CREDENTIALS": "Invalid email, username, or password.",
     "AUTH_CONFIGURATION_ERROR": "Authentication is not configured.",
-    "ACCOUNT_NOT_VERIFIED":"Your account hasn’t been verified yet. Please verify your email address to continue."
+    "DEFAULT_ROLE_NOT_FOUND": "The default user role is not configured.",
+    "ACCOUNT_NOT_VERIFIED": "Your account hasn’t been verified yet. Please verify your email address to continue."
+  },
+  "ROLE": {
+    "ALREADY_EXIST": "A role with this name or slag already exists."
   }
 }

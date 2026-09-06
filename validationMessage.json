@@ -27,5 +27,16 @@
     "PASSWORD_NUMBER": "Password must contain at least one number.",
     "PASSWORD_SPECIAL_CHARACTER": "Password must contain at least one special character.",
     "UNKNOWN_FIELDS": "Request contains an unsupported field."
+  },
+  "ROLE": {
+    "CREATE_VALIDATION_FAILED": "Please correct the invalid role details.",
+    "NAME_REQUIRED": "Role name is required.",
+    "NAME_MIN_LENGTH": "Role name must contain at least 2 characters.",
+    "NAME_MAX_LENGTH": "Role name cannot contain more than 50 characters.",
+    "SLAG_REQUIRED": "Role slag is required.",
+    "SLAG_MIN_LENGTH": "Role slag must contain at least 2 characters.",
+    "SLAG_MAX_LENGTH": "Role slag cannot contain more than 50 characters.",
+    "SLAG_INVALID": "Role slag can contain only lowercase letters, numbers, and hyphens.",
+    "UNKNOWN_FIELDS": "Request contains an unsupported field."
   }
 }
