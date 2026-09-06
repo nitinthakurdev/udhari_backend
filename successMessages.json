@@ -3,9 +3,12 @@
     "USER_CREATED": "User created successfully.",
     "USER_SIGNED_IN": "User signed in successfully.",
     "CURRENT_USER_FETCHED": "Current user details fetched successfully.",
-    "LOGOUT_USER":"User logout successfully"
+    "LOGOUT_USER": "User logout successfully"
   },
   "ROLE": {
     "ROLE_CREATED": "Role created successfully."
+  },
+  "ORGANIZATION":{
+    "CREATE":"Your organization, shop, or branch has been added successfully."
   }
 }

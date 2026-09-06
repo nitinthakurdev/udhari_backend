@@ -43,7 +43,7 @@ export type UserCreationSchema = Optional<
   | "deleted_at"
 >;
 
-export interface IUserModel extends Model<IUserSchema, UserCreationSchema>, IUserSchema {}
+export interface IUserModel extends Model<IUserSchema, UserCreationSchema>, IUserSchema { }
 
 export interface IUserCreatePayload {
   first_name: string;
@@ -66,6 +66,7 @@ export interface IUserSigninPayload {
 
 export type ICurrentUser = Pick<
   IUserSchema,
+  | "id"
   | "uuid"
   | "first_name"
   | "last_name"

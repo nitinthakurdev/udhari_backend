@@ -129,8 +129,6 @@ const userModel = sequelize.define<IUserModel>(
   },
 );
 
-
 void userModel.sync();
-
 
 export { userModel };

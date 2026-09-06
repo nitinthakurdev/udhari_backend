@@ -25,7 +25,7 @@ const response = new HalSuccess();
 
 /*
  ===============================================================================================
- ************************** logged-in user details api code start here ************************
+ ************************** sign up api code start here ***************************************
  ===============================================================================================
  */
 export const signup = AsyncHandler(async (req, res): Promise<void> => {
@@ -58,6 +58,9 @@ export const signup = AsyncHandler(async (req, res): Promise<void> => {
     }),
   );
 });
+
+
+
 
 /*
  ===============================================================================================
@@ -135,7 +138,7 @@ export const signin = AsyncHandler(async (req, res): Promise<void> => {
  ************************** sign up api code start here ***************************************
  ===============================================================================================
  */
-export const loginUserDetails = AsyncHandler(async (req, res):Promise<void> => {
+export const loginUserDetails = AsyncHandler(async (req, res): Promise<void> => {
   const user = req.currentUser;
 
   if (!user) {
@@ -157,15 +160,19 @@ export const loginUserDetails = AsyncHandler(async (req, res):Promise<void> => {
  ************************** sign up api code start here ***************************************
  ===============================================================================================
  */
-export const logoutUser = AsyncHandler(async (req,res):Promise<void> => {
-
+export const logoutUser = AsyncHandler(async (req, res): Promise<void> => {
   const user = req.currentUser;
-  if(!user){
+  if (!user) {
     throw new UnauthorizedError(errorMessages.AUTHORIZATION.USER_UNAUTHORIZED);
-  };
+  }
 
-  res.clearCookie("AT").clearCookie("RT").status(StatusCodes.ACCEPTED).json(response.accepted(null,{
-    message:successMessages.USER.LOGOUT_USER,
-  }))
-
-})
+  res
+    .clearCookie("AT")
+    .clearCookie("RT")
+    .status(StatusCodes.ACCEPTED)
+    .json(
+      response.accepted(null, {
+        message: successMessages.USER.LOGOUT_USER,
+      }),
+    );
+});

@@ -20,5 +20,8 @@
   },
   "ROLE": {
     "ALREADY_EXIST": "A role with this name or slag already exists."
+  },
+  "ORGANIZATION":{
+    "EXIST":"An organization with this name already exists. Please choose a different name and try again."
   }
 }

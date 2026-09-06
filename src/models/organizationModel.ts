@@ -1,9 +1,9 @@
 import { sequelize } from "@/config/dbConfig";
-import type { IRoleModel } from "@/types/roleTypes";
+import type { IOrganizationModel } from "@/types/organizationTypes";
 import { DataTypes } from "sequelize";
 
-const roleModel = sequelize.define<IRoleModel>(
-  "RoleModel",
+const organizationModel = sequelize.define<IOrganizationModel>(
+  "OrganizationModel",
   {
     id: {
       type: DataTypes.INTEGER,
@@ -17,10 +17,32 @@ const roleModel = sequelize.define<IRoleModel>(
     name: {
       type: DataTypes.STRING,
       allowNull: false,
+      unique: true,
     },
     slug: {
       type: DataTypes.STRING,
       allowNull: false,
+      unique: true,
+    },
+    country: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    state: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    city: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    address: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
+    address_2: {
+      type: DataTypes.TEXT,
+      allowNull: true,
     },
     created_by: {
       type: DataTypes.INTEGER,
@@ -48,22 +70,25 @@ const roleModel = sequelize.define<IRoleModel>(
     },
   },
   {
-    tableName: "roles",
+    tableName: "organizations",
     timestamps: true,
     paranoid: true,
     createdAt: "created_at",
     updatedAt: "updated_at",
     deletedAt: "deleted_at",
-    indexes: [
+    indexes:[
       {
-        name: "roles_uuid_unique",
-        unique: true,
-        fields: ["uuid"],
+        unique:true,
+        fields:["name"]
       },
-    ],
+      {
+        unique: true,
+        fields: ["slug"]
+      }
+    ]
   },
 );
 
-void roleModel.sync();
+void organizationModel.sync();
 
-export { roleModel };
+export { organizationModel };

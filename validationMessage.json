@@ -38,5 +38,26 @@
     "SLAG_MAX_LENGTH": "Role slag cannot contain more than 50 characters.",
     "SLAG_INVALID": "Role slag can contain only lowercase letters, numbers, and hyphens.",
     "UNKNOWN_FIELDS": "Request contains an unsupported field."
+  },
+  "ORGANIZATION": {
+    "CREATE_VALIDATION_FAILED": "Please correct the invalid organization details.",
+    "NAME_REQUIRED": "Organization name is required.",
+    "NAME_MIN_LENGTH": "Organization name must contain at least 2 characters.",
+    "NAME_MAX_LENGTH": "Organization name cannot contain more than 100 characters.",
+    "SLUG_REQUIRED": "Organization slug is required.",
+    "SLUG_MIN_LENGTH": "Organization slug must contain at least 2 characters.",
+    "SLUG_MAX_LENGTH": "Organization slug cannot contain more than 100 characters.",
+    "SLUG_INVALID": "Organization slug can contain only lowercase letters, numbers, and single hyphens.",
+    "COUNTRY_REQUIRED": "Country is required.",
+    "COUNTRY_MAX_LENGTH": "Country cannot contain more than 80 characters.",
+    "STATE_REQUIRED": "State is required.",
+    "STATE_MAX_LENGTH": "State cannot contain more than 80 characters.",
+    "CITY_REQUIRED": "City is required.",
+    "CITY_MAX_LENGTH": "City cannot contain more than 80 characters.",
+    "ADDRESS_REQUIRED": "Address is required.",
+    "ADDRESS_MIN_LENGTH": "Address must contain at least 5 characters.",
+    "ADDRESS_MAX_LENGTH": "Address cannot contain more than 250 characters.",
+    "ADDRESS_2_MAX_LENGTH": "Additional address cannot contain more than 250 characters.",
+    "UNKNOWN_FIELDS": "Request contains an unsupported field."
   }
 }

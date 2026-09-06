@@ -19,7 +19,6 @@ export const toPublicUser = (user: IUserSchema): IUserPublic => ({
   updated_at: user.updated_at,
 });
 
-
 /*
 ==============================================================================
 ********************** all the user related includes here ********************
@@ -29,8 +28,8 @@ export const toPublicUser = (user: IUserSchema): IUserPublic => ({
 const roleInclude = {
   model: roleModel,
   as: "user_role",
-  attributes: ["uuid", "name", "slug", "created_at"]
-}
+  attributes: ["uuid", "name", "slug", "created_at"],
+};
 
 /*
 ==============================================================================
@@ -77,6 +76,7 @@ export const findUserByUsername = async (username: string): Promise<ICurrentUser
     where: { username },
     include: [roleInclude],
     attributes: [
+      "id",
       "uuid",
       "first_name",
       "last_name",

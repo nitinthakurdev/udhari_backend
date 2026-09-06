@@ -20,8 +20,7 @@ export const userRouter = (): Router => {
  ================================================================================
   */
   routes.route("/current-user").get(authorization, loginUserDetails);
-  routes.route("/logout").post(authorization, logoutUser)
-  
+  routes.route("/logout").post(authorization, logoutUser);
 
   return routes;
 };
