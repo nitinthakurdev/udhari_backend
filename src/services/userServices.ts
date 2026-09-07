@@ -19,6 +19,8 @@ export const toPublicUser = (user: IUserSchema): IUserPublic => ({
   updated_at: user.updated_at,
 });
 
+
+
 /*
 ==============================================================================
 ********************** all the user related includes here ********************
