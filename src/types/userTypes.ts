@@ -12,6 +12,7 @@ export interface IUserSchema {
   is_phone_verified: boolean;
   verification_token: string | null;
   verification_token_expiry: Date | null;
+  organization_id: number | null;
   dial_code: string | null;
   otp: string | null;
   otp_expiry: Date | null;

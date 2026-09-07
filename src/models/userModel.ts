@@ -75,6 +75,10 @@ const userModel = sequelize.define<IUserModel>(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    organization_id:{
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     created_by: {
       type: DataTypes.INTEGER,
       allowNull: true,
