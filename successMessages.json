@@ -8,7 +8,8 @@
   "ROLE": {
     "ROLE_CREATED": "Role created successfully."
   },
-  "ORGANIZATION":{
-    "CREATE":"Your organization, shop, or branch has been added successfully."
+  "ORGANIZATION": {
+    "CREATE": "Your organization, shop, or branch has been added successfully.",
+    "LIST": "Organizations and shops fetched successfully."
   }
 }

@@ -1,5 +1,5 @@
 import { organizationModel } from "@/models/organizationModel";
-import type { IOrganizationCreatePayload } from "@/types/organizationTypes";
+import type { IOrganizationCreatePayload, IOrganizationPublic } from "@/types/organizationTypes";
 import { Op } from "sequelize";
 
 /*
@@ -10,6 +10,32 @@ import { Op } from "sequelize";
 export const createOrganization = async (data: IOrganizationCreatePayload) => {
   const result = await organizationModel.create(data);
   return result.dataValues;
+};
+
+/*
+==============================================================================
+********************** list organizations service here ***********************
+==============================================================================
+ */
+export const findOrganizationsByCreator = async (createdBy: number): Promise<IOrganizationPublic[]> => {
+  const results = await organizationModel.findAll({
+    where: { created_by: createdBy },
+    attributes: [
+      "uuid",
+      "name",
+      "slug",
+      "country",
+      "state",
+      "city",
+      "address",
+      "address_2",
+      "created_at",
+      "updated_at",
+    ],
+    order: [["created_at", "DESC"]],
+  }) ;
+
+  return results;
 };
 
 /*
