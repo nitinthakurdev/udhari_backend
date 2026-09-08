@@ -97,6 +97,6 @@ const subscriptionModel = sequelize.define<ISubscriptionModel>(
   },
 );
 
-void subscriptionModel.sync();
+
 
 export { subscriptionModel };

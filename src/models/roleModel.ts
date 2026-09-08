@@ -64,6 +64,6 @@ const roleModel = sequelize.define<IRoleModel>(
   },
 );
 
-void roleModel.sync();
+
 
 export { roleModel };

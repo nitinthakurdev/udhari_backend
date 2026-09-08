@@ -93,6 +93,6 @@ const organizationModel = sequelize.define<IOrganizationModel>(
   },
 );
 
-void organizationModel.sync({ force: true });
+
 
 export { organizationModel };
