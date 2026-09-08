@@ -84,6 +84,8 @@ export const signin = AsyncHandler(async (req, res): Promise<void> => {
     throw new BadRequestError(errorMessages.USER.ACCOUNT_NOT_VERIFIED);
   }
 
+  const authenticatedUser = toPublicUser(user);
+
   const jwtSecret = config.JWT_TOKEN;
   if (!jwtSecret) {
     throw new InternalServerError(errorMessages.USER.AUTH_CONFIGURATION_ERROR);
@@ -121,7 +123,7 @@ export const signin = AsyncHandler(async (req, res): Promise<void> => {
   res.status(StatusCodes.OK).json(
     response.ok(
       {
-        user: toPublicUser(user),
+        user: authenticatedUser,
         access_token: accessToken,
         refresh_token: refreshToken,
       },

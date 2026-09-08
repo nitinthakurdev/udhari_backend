@@ -8,6 +8,7 @@ export interface IOrganizationSchema {
   country: string;
   state: string;
   city: string;
+  pincode: string;
   address: string;
   address_2: string | null;
   created_by: number | null;
@@ -36,12 +37,15 @@ export interface IOrganizationModel
 
 export type IOrganizationCreatePayload = Pick<
   IOrganizationSchema,
-  "name" | "slug" | "country" | "state" | "city" | "address"
+  "name" | "slug" | "country" | "state" | "city" | "pincode" | "address"
 > &
   Partial<Pick<IOrganizationSchema, "address_2" | "created_by">>;
 
 export type IOrganizationUpdatePayload = Partial<
-  Pick<IOrganizationSchema, "name" | "country" | "state" | "city" | "address" | "address_2">
+  Pick<
+    IOrganizationSchema,
+    "name" | "country" | "state" | "city" | "pincode" | "address" | "address_2"
+  >
 >;
 
 export type IOrganizationUpdateData = IOrganizationUpdatePayload &
@@ -55,6 +59,7 @@ export type IOrganizationPublic = Pick<
   | "country"
   | "state"
   | "city"
+  | "pincode"
   | "address"
   | "address_2"
   | "created_at"

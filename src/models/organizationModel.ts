@@ -36,6 +36,10 @@ const organizationModel = sequelize.define<IOrganizationModel>(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    pincode: {
+      type: DataTypes.STRING(6),
+      allowNull: false,
+    },
     address: {
       type: DataTypes.TEXT,
       allowNull: false,
@@ -89,6 +93,6 @@ const organizationModel = sequelize.define<IOrganizationModel>(
   },
 );
 
-void organizationModel.sync();
+void organizationModel.sync({ force: true });
 
 export { organizationModel };

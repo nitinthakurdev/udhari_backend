@@ -18,6 +18,7 @@ export const toPublicUser = (user: IUserSchema): IUserPublic => ({
   score: user.score,
   created_at: user.created_at,
   updated_at: user.updated_at,
+  ...(user.user_role ? { user_role: user.user_role } : {}),
 });
 
 
@@ -38,7 +39,7 @@ const includesHandle = {
   organizationInclude : {
     model: organizationModel,
     as: "organization",
-    attributes: ["uuid", "name", "slug", "country", "state", "city", "address", "address_2", "created_at","updated_at"]
+    attributes: ["uuid", "name", "slug", "country", "state", "city", "pincode", "address", "address_2", "created_at","updated_at"]
   }
 }
 
@@ -72,6 +73,7 @@ export const findUserByIdentifier = async (
 ): Promise<IUserSchema | undefined> => {
   const result = await userModel.findOne({
     where: { [Op.or]: [{ email: identifier }, { username: identifier }] },
+    include:[includesHandle.roleInclude]
   });
 
   return result?.dataValues;
@@ -126,4 +128,3 @@ export const findByIdAndUpdateWhere = async (where: WhereOptions<IUserSchema>, d
   const result = await userModel.update(data, { where:where });
   return result;
 };
-

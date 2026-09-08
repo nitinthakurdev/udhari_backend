@@ -1,4 +1,8 @@
 import type { Model, Optional } from "sequelize";
+import type { IOrganizationPublic } from "@/types/organizationTypes";
+import type { IRoleSchema } from "@/types/roleTypes";
+
+export type IUserRole = Pick<IRoleSchema, "uuid" | "name" | "slug" | "created_at">;
 
 export interface IUserSchema {
   id: number;
@@ -23,6 +27,7 @@ export interface IUserSchema {
   created_at: Date;
   updated_at: Date;
   deleted_at: Date | null;
+  user_role?: IUserRole;
 }
 
 export type IUserCreationSchema = Optional<
@@ -102,9 +107,11 @@ export type ICurrentUser = Pick<
   | "dial_code"
   | "is_email_verified"
   | "is_phone_verified"
-  | "role_id"
   | "created_at"
->;
+> & {
+  user_role?: IUserRole;
+  organization?: IOrganizationPublic | null;
+};
 
 export type IUserPublic = Pick<
   IUserSchema,
@@ -117,6 +124,7 @@ export type IUserPublic = Pick<
   | "dial_code"
   | "is_email_verified"
   | "is_phone_verified"
+  | "user_role"
   | "score"
   | "created_at"
   | "updated_at"

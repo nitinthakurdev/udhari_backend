@@ -25,6 +25,10 @@ const organizationFields = {
     .trim()
     .min(1, { error: organizationValidationMessages.CITY_REQUIRED })
     .max(80, { error: organizationValidationMessages.CITY_MAX_LENGTH }),
+  pincode: z
+    .string({ error: organizationValidationMessages.PINCODE_REQUIRED })
+    .trim()
+    .regex(/^\d{6}$/, { error: organizationValidationMessages.PINCODE_INVALID }),
   address: z
     .string({ error: organizationValidationMessages.ADDRESS_REQUIRED })
     .trim()
@@ -50,6 +54,7 @@ export const updateOrganizationValidationPayload = z
       country: organizationFields.country.optional(),
       state: organizationFields.state.optional(),
       city: organizationFields.city.optional(),
+      pincode: organizationFields.pincode.optional(),
       address: organizationFields.address.optional(),
       address_2: organizationFields.address_2,
     },

@@ -59,6 +59,8 @@
     "STATE_MAX_LENGTH": "State cannot contain more than 80 characters.",
     "CITY_REQUIRED": "City is required.",
     "CITY_MAX_LENGTH": "City cannot contain more than 80 characters.",
+    "PINCODE_REQUIRED": "PIN code is required.",
+    "PINCODE_INVALID": "PIN code must contain exactly 6 digits.",
     "ADDRESS_REQUIRED": "Address is required.",
     "ADDRESS_MIN_LENGTH": "Address must contain at least 5 characters.",
     "ADDRESS_MAX_LENGTH": "Address cannot contain more than 250 characters.",
