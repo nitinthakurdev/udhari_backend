@@ -8,6 +8,13 @@
   "ROLE": {
     "ROLE_CREATED": "Role created successfully."
   },
+  "SUBSCRIPTION": {
+    "CREATE": "Subscription created successfully.",
+    "LIST": "Subscriptions fetched successfully.",
+    "GET": "Subscription fetched successfully.",
+    "UPDATE": "Subscription updated successfully.",
+    "DELETE": "Subscription deleted successfully."
+  },
   "ORGANIZATION": {
     "CREATE": "Your organization, shop, or branch has been added successfully.",
     "LIST": "Organizations and shops fetched successfully.",

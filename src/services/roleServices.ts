@@ -30,3 +30,8 @@ export const findRoleBySlag = async (slug: string): Promise<IRoleSchema | undefi
   const result = await roleModel.findOne({ where: { slug } });
   return result?.dataValues;
 };
+
+export const findRoleById = async (id: number): Promise<IRoleSchema | undefined> => {
+  const result = await roleModel.findByPk(id);
+  return result?.dataValues;
+};
