@@ -1,5 +1,10 @@
 import { roleModel } from "@/models/roleModel";
-import type { IRoleCreatePayload, IRolePublic, IRoleSchema } from "@/types/roleTypes";
+import type {
+  IRoleAdminListItem,
+  IRoleCreatePayload,
+  IRolePublic,
+  IRoleSchema,
+} from "@/types/roleTypes";
 import { Op } from "sequelize";
 
 export const toPublicRole = (role: IRoleSchema): IRolePublic => ({
@@ -34,4 +39,13 @@ export const findRoleBySlag = async (slug: string): Promise<IRoleSchema | undefi
 export const findRoleById = async (id: number): Promise<IRoleSchema | undefined> => {
   const result = await roleModel.findByPk(id);
   return result?.dataValues;
+};
+
+export const findRoles = async (): Promise<IRoleAdminListItem[]> => {
+  const roles = await roleModel.findAll({
+    attributes: ["id", "uuid", "name", "slug", "created_at", "updated_at"],
+    order: [["name", "ASC"]],
+  });
+
+  return roles.map((role) => role.dataValues);
 };

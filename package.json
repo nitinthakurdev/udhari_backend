@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc && tsc-alias",
-    "start": "pm2 start node dist/index.js --name udhari-prod-backend -i 4",
+    "start": "pm2 start node dist/index.js --name udhari-prod-backend",
+    "start:stg":"pm2 start node dist/index.js --name udhari-stg-backend",
+    "restart:stg":"pm2 restart udhari-stg-backend",
     "restart":"pm2 restart udhari-prod-backend",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

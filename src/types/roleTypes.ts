@@ -31,3 +31,8 @@ export type IRoleCreatePayload = Pick<IRoleSchema, "name" | "slug"> &
   Partial<Pick<IRoleSchema, "created_by">>;
 
 export type IRolePublic = Pick<IRoleSchema, "uuid" | "name" | "slug" | "created_at" | "updated_at">;
+
+export type IRoleAdminListItem = Pick<
+  IRoleSchema,
+  "id" | "uuid" | "name" | "slug" | "created_at" | "updated_at"
+>;

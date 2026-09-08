@@ -3,6 +3,7 @@ import {
   createUser as createUserService,
   findUserByEmailOrUsername,
   findUserByIdentifier,
+  findUsers,
   toPublicUser,
 } from "@/services/userServices";
 import { findRoleBySlag } from "@/services/roleServices";
@@ -22,6 +23,16 @@ import successMessages from "../../successMessages.json";
 import errorMessages from "../../errorMessages.json";
 
 const response = new HalSuccess();
+
+export const listUsers = AsyncHandler(async (_req, res): Promise<void> => {
+  const users = await findUsers();
+
+  res.status(StatusCodes.OK).json(
+    response.ok(users, {
+      message: successMessages.USER.USER_LIST,
+    }),
+  );
+});
 
 /*
  ===============================================================================================

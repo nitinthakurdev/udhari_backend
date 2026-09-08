@@ -28,6 +28,7 @@ export interface IUserSchema {
   updated_at: Date;
   deleted_at: Date | null;
   user_role?: IUserRole;
+  organization?: IOrganizationPublic | null;
 }
 
 export type IUserCreationSchema = Optional<
@@ -128,4 +129,22 @@ export type IUserPublic = Pick<
   | "score"
   | "created_at"
   | "updated_at"
+>;
+
+export type IUserAdminListItem = Pick<
+  IUserSchema,
+  | "uuid"
+  | "first_name"
+  | "last_name"
+  | "email"
+  | "username"
+  | "phone"
+  | "dial_code"
+  | "is_email_verified"
+  | "is_phone_verified"
+  | "score"
+  | "created_at"
+  | "updated_at"
+  | "user_role"
+  | "organization"
 >;
