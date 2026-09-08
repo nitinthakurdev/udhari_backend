@@ -25,7 +25,7 @@ export interface IUserSchema {
   deleted_at: Date | null;
 }
 
-export type UserCreationSchema = Optional<
+export type IUserCreationSchema = Optional<
   IUserSchema,
   | "id"
   | "uuid"
@@ -35,6 +35,7 @@ export type UserCreationSchema = Optional<
   | "is_phone_verified"
   | "verification_token"
   | "verification_token_expiry"
+  | "organization_id"
   | "otp"
   | "otp_expiry"
   | "score"
@@ -44,7 +45,7 @@ export type UserCreationSchema = Optional<
   | "deleted_at"
 >;
 
-export interface IUserModel extends Model<IUserSchema, UserCreationSchema>, IUserSchema { }
+export interface IUserModel extends Model<IUserSchema, IUserCreationSchema>, IUserSchema { }
 
 export interface IUserCreatePayload {
   first_name: string;
@@ -54,6 +55,29 @@ export interface IUserCreatePayload {
   phone: string;
   dial_code?: string | null;
   password: string;
+}
+
+export interface IUserUpdateSchema {
+  first_name?: string;
+  last_name?: string | null;
+  email?: string;
+  username?: string;
+  phone?: string;
+  is_email_verified?: boolean;
+  is_phone_verified?: boolean;
+  verification_token?: string | null;
+  verification_token_expiry?: Date | null;
+  organization_id?: number | null;
+  dial_code?: string | null;
+  otp?: string | null;
+  otp_expiry?: Date | null;
+  score?: number;
+  role_id?: number;
+  password?: string | null;
+  created_by?: number | null;
+  created_at?: Date;
+  updated_at?: Date;
+  deleted_at?: Date | null;
 }
 
 export interface IUserCreateData extends IUserCreatePayload {

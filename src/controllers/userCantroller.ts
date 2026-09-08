@@ -143,7 +143,7 @@ export const loginUserDetails = AsyncHandler(async (req, res): Promise<void> => 
 
   if (!user) {
     throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
-  }
+  };
 
   const requestId = req.header("x-request-id");
 

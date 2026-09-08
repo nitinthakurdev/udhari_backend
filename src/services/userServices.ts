@@ -1,6 +1,7 @@
+import { organizationModel } from "@/models/organizationModel";
 import { roleModel } from "@/models/roleModel";
 import { userModel } from "@/models/userModel";
-import type { ICurrentUser, IUserCreateData, IUserPublic, IUserSchema } from "@/types/userTypes";
+import type { ICurrentUser, IUserCreateData, IUserPublic, IUserSchema, IUserUpdateSchema } from "@/types/userTypes";
 import { Op } from "sequelize";
 
 // ----------- create user data formate handle is here --------------
@@ -27,11 +28,19 @@ export const toPublicUser = (user: IUserSchema): IUserPublic => ({
 ==============================================================================
  */
 
-const roleInclude = {
-  model: roleModel,
-  as: "user_role",
-  attributes: ["uuid", "name", "slug", "created_at"],
-};
+
+const includesHandle = {
+  roleInclude : {
+    model: roleModel,
+    as: "user_role",
+    attributes: ["uuid", "name", "slug", "created_at"],
+  },
+  organizationInclude : {
+    model: organizationModel,
+    as: "organization",
+    attributes: ["uuid", "name", "slug", "country", "state", "city", "address", "address_2", "created_at","updated_at"]
+  }
+}
 
 /*
 ==============================================================================
@@ -76,7 +85,7 @@ export const findUserByIdentifier = async (
 export const findUserByUsername = async (username: string): Promise<ICurrentUser | undefined> => {
   const result = await userModel.findOne({
     where: { username },
-    include: [roleInclude],
+    include: [includesHandle.roleInclude,includesHandle.organizationInclude],
     attributes: [
       "id",
       "uuid",
@@ -94,3 +103,14 @@ export const findUserByUsername = async (username: string): Promise<ICurrentUser
 
   return result?.dataValues;
 };
+
+/*
+==============================================================================
+*************** update user by email service here ***************************
+==============================================================================
+ */
+
+export const findByIdAndUpdate = async (id: number, data: IUserUpdateSchema): Promise< [affectedCount: number]> => {
+  const result = await userModel.update(data,{where:{id}});
+  return result;
+}

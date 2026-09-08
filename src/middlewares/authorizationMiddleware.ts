@@ -47,6 +47,7 @@ export const authorization = AsyncHandler(
 
     const user = await findUserByUsername(payload.username);
 
+
     if (!user) {
       throw new BadRequestError(errorMessages.AUTHORIZATION.USER_NOT_FOUND);
     }

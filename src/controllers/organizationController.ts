@@ -11,6 +11,7 @@ import { StatusCodes } from "http-status-codes";
 import errorMessages from "../../errorMessages.json";
 import successMessages from "../../successMessages.json";
 import { toSlug } from "@/utils/slugMaker";
+import { findByIdAndUpdate } from "@/services/userServices";
 
 const response = new HalSuccess();
 
@@ -52,6 +53,8 @@ export const registerOrganization = AsyncHandler(async (req, res): Promise<void>
   }
 
   const result = await createOrganization({ ...data, slug, created_by: req.currentUser.id });
+
+  await findByIdAndUpdate(req.currentUser.id, { organization_id:result.id})
 
   res
     .status(StatusCodes.CREATED)
