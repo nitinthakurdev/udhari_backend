@@ -2,7 +2,7 @@ import { organizationModel } from "@/models/organizationModel";
 import { roleModel } from "@/models/roleModel";
 import { userModel } from "@/models/userModel";
 import type { ICurrentUser, IUserCreateData, IUserPublic, IUserSchema, IUserUpdateSchema } from "@/types/userTypes";
-import { Op } from "sequelize";
+import { Op, type WhereOptions } from "sequelize";
 
 // ----------- create user data formate handle is here --------------
 export const toPublicUser = (user: IUserSchema): IUserPublic => ({
@@ -113,4 +113,17 @@ export const findUserByUsername = async (username: string): Promise<ICurrentUser
 export const findByIdAndUpdate = async (id: number, data: IUserUpdateSchema): Promise< [affectedCount: number]> => {
   const result = await userModel.update(data,{where:{id}});
   return result;
-}
+};
+
+
+/*
+==============================================================================
+*************** update user by where service here ***************************
+==============================================================================
+ */
+
+export const findByIdAndUpdateWhere = async (where: WhereOptions<IUserSchema>, data: IUserUpdateSchema): Promise<[affectedCount: number]> => {
+  const result = await userModel.update(data, { where:where });
+  return result;
+};
+

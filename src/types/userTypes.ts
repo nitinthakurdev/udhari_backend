@@ -80,6 +80,7 @@ export interface IUserUpdateSchema {
   deleted_at?: Date | null;
 }
 
+
 export interface IUserCreateData extends IUserCreatePayload {
   role_id: number;
 }
