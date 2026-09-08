@@ -51,7 +51,7 @@ export type IUserCreationSchema = Optional<
   | "deleted_at"
 >;
 
-export interface IUserModel extends Model<IUserSchema, IUserCreationSchema>, IUserSchema { }
+export interface IUserModel extends Model<IUserSchema, IUserCreationSchema>, IUserSchema {}
 
 export interface IUserCreatePayload {
   first_name: string;
@@ -86,9 +86,10 @@ export interface IUserUpdateSchema {
   deleted_at?: Date | null;
 }
 
-
 export interface IUserCreateData extends IUserCreatePayload {
   role_id: number;
+  verification_token?: string | null;
+  verification_token_expiry?: Date | null;
 }
 
 export interface IUserSigninPayload {

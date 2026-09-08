@@ -5,7 +5,9 @@ import {
   findUserByIdentifier,
   findUsers,
   toPublicUser,
+  verifyUserEmailByToken,
 } from "@/services/userServices";
+import { sendEmail } from "@/services/emailService";
 import { findRoleBySlag } from "@/services/roleServices";
 import type { IUserCreatePayload, IUserSigninPayload } from "@/types/userTypes";
 import { config } from "@/config/envConfig";
@@ -22,6 +24,8 @@ import jwt from "jsonwebtoken";
 import type { CookieOptions } from "express";
 import successMessages from "../../successMessages.json";
 import errorMessages from "../../errorMessages.json";
+import { randomBytes } from "node:crypto";
+import { sequelize } from "@/config/dbConfig";
 
 const response = new HalSuccess();
 const isDeployedEnvironment = ["staging", "production"].includes(config.NODE_ENV ?? "");
@@ -63,10 +67,43 @@ export const signup = AsyncHandler(async (req, res): Promise<void> => {
     throw new InternalServerError(errorMessages.USER.DEFAULT_ROLE_NOT_FOUND);
   }
 
-  const user = await createUserService({
-    ...data,
-    password: hashedPassword,
-    role_id: defaultRole.id,
+  const verificationToken = randomBytes(32).toString("hex");
+  const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const requestHost = req.get("host");
+  if (!requestHost) {
+    throw new InternalServerError(errorMessages.USER.AUTH_CONFIGURATION_ERROR);
+  }
+  const verificationUrl = `${req.protocol}://${requestHost}/api/v1/users/verify-email?token=${encodeURIComponent(verificationToken)}`;
+
+  const user = await sequelize.transaction(async (transaction) => {
+    const createdUser = await createUserService(
+      {
+        ...data,
+        password: hashedPassword,
+        role_id: defaultRole.id,
+        verification_token: verificationToken,
+        verification_token_expiry: verificationTokenExpiry,
+      },
+      transaction,
+    );
+
+    try {
+      await sendEmail({
+        to: createdUser.email,
+        subject: "Verify your Udhari account",
+        template: "verify-email",
+        data: {
+          name: createdUser.first_name,
+          verificationUrl,
+        },
+        text: `Hi ${createdUser.first_name}, verify your Udhari account by opening this link: ${verificationUrl}. This link expires in 24 hours.`,
+      });
+    } catch (error: unknown) {
+      console.error("Failed to send verification email", error);
+      throw new InternalServerError(errorMessages.USER.EMAIL_SEND_FAILED);
+    }
+
+    return createdUser;
   });
 
   const requestId = req.header("x-request-id");
@@ -79,8 +116,24 @@ export const signup = AsyncHandler(async (req, res): Promise<void> => {
   );
 });
 
+export const verifyEmail = AsyncHandler(async (req, res): Promise<void> => {
+  const token = typeof req.query["token"] === "string" ? req.query["token"] : "";
 
+  if (!token) {
+    throw new BadRequestError(errorMessages.USER.VERIFICATION_TOKEN_REQUIRED);
+  }
 
+  const isVerified = await verifyUserEmailByToken(token);
+  if (!isVerified) {
+    throw new BadRequestError(errorMessages.USER.VERIFICATION_TOKEN_INVALID);
+  }
+
+  res.status(StatusCodes.OK).json(
+    response.ok(null, {
+      message: successMessages.USER.EMAIL_VERIFIED,
+    }),
+  );
+});
 
 /*
  ===============================================================================================
@@ -171,7 +224,7 @@ export const loginUserDetails = AsyncHandler(async (req, res): Promise<void> => 
 
   if (!user) {
     throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
-  };
+  }
 
   const requestId = req.header("x-request-id");
 

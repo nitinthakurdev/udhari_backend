@@ -16,7 +16,10 @@
     "INVALID_CREDENTIALS": "Invalid email, username, or password.",
     "AUTH_CONFIGURATION_ERROR": "Authentication is not configured.",
     "DEFAULT_ROLE_NOT_FOUND": "The default user role is not configured.",
-    "ACCOUNT_NOT_VERIFIED": "Your account hasn’t been verified yet. Please verify your email address to continue."
+    "ACCOUNT_NOT_VERIFIED": "Your account hasn’t been verified yet. Please verify your email address to continue.",
+    "VERIFICATION_TOKEN_REQUIRED": "Email verification token is required.",
+    "VERIFICATION_TOKEN_INVALID": "This email verification link is invalid or has expired.",
+    "EMAIL_SEND_FAILED": "We could not send the verification email. Please try registering again."
   },
   "ROLE": {
     "ALREADY_EXIST": "A role with this name or slag already exists."

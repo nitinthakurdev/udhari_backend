@@ -4,6 +4,7 @@ import {
   logoutUser,
   signin,
   signup,
+  verifyEmail,
 } from "@/controllers/userCantroller";
 import { authorization } from "@/middlewares/authorizationMiddleware";
 import { requireAdmin } from "@/middlewares/roleAuthorizationMiddleware";
@@ -20,6 +21,7 @@ export const userRouter = (): Router => {
    */
   routes.route("/sign-up").post(validateSignup, signup);
   routes.route("/sign-in").post(validateSignin, signin);
+  routes.route("/verify-email").get(verifyEmail);
 
   /*
  ================================================================================
