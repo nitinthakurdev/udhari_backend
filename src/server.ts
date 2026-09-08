@@ -20,8 +20,9 @@ import cookieParser from "cookie-parser";
 
 // ---------- all associations import below here ---------
 import "./association/userAssociation";
+import { config } from "./config/envConfig";
 
-const SERVER_PORT = 5001;
+const SERVER_PORT = config.NODE_ENV === "staging" ? 5003 :  5001;
 
 export const Start = (app: Application): void => {
   securityMiddleware(app);
