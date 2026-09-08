@@ -41,6 +41,11 @@
   },
   "ORGANIZATION": {
     "CREATE_VALIDATION_FAILED": "Please correct the invalid organization details.",
+    "UPDATE_VALIDATION_FAILED": "Please correct the invalid organization details.",
+    "UUID_VALIDATION_FAILED": "Please provide a valid organization identifier.",
+    "UPDATE_EMPTY": "Provide at least one organization field to update.",
+    "UUID_REQUIRED": "Organization identifier is required.",
+    "UUID_INVALID": "Organization identifier must be a valid UUID.",
     "NAME_REQUIRED": "Organization name is required.",
     "NAME_MIN_LENGTH": "Organization name must contain at least 2 characters.",
     "NAME_MAX_LENGTH": "Organization name cannot contain more than 100 characters.",

@@ -38,7 +38,14 @@ export type IOrganizationCreatePayload = Pick<
   IOrganizationSchema,
   "name" | "slug" | "country" | "state" | "city" | "address"
 > &
-  Partial<Pick<IOrganizationSchema, "address_2"  | "created_by">>;
+  Partial<Pick<IOrganizationSchema, "address_2" | "created_by">>;
+
+export type IOrganizationUpdatePayload = Partial<
+  Pick<IOrganizationSchema, "name" | "country" | "state" | "city" | "address" | "address_2">
+>;
+
+export type IOrganizationUpdateData = IOrganizationUpdatePayload &
+  Partial<Pick<IOrganizationSchema, "slug" | "updated_by">>;
 
 export type IOrganizationPublic = Pick<
   IOrganizationSchema,
