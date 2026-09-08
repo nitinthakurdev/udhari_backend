@@ -19,10 +19,19 @@ import {
 import { StatusCodes } from "http-status-codes";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import type { CookieOptions } from "express";
 import successMessages from "../../successMessages.json";
 import errorMessages from "../../errorMessages.json";
 
 const response = new HalSuccess();
+const isDeployedEnvironment = ["staging", "production"].includes(config.NODE_ENV ?? "");
+const sessionCookieOptions: CookieOptions = {
+  httpOnly: true,
+  secure: isDeployedEnvironment,
+  sameSite: "lax",
+  path: "/",
+  ...(config.COOKIE_DOMAIN ? { domain: config.COOKIE_DOMAIN } : {}),
+};
 
 export const listUsers = AsyncHandler(async (_req, res): Promise<void> => {
   const users = await findUsers();
@@ -126,8 +135,14 @@ export const signin = AsyncHandler(async (req, res): Promise<void> => {
     },
   );
 
-  res.cookie("AT", accessToken);
-  res.cookie("RT", refreshToken);
+  res.cookie("AT", accessToken, {
+    ...sessionCookieOptions,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+  res.cookie("RT", refreshToken, {
+    ...sessionCookieOptions,
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
 
   const requestId = req.header("x-request-id");
 
@@ -180,8 +195,8 @@ export const logoutUser = AsyncHandler(async (req, res): Promise<void> => {
   }
 
   res
-    .clearCookie("AT")
-    .clearCookie("RT")
+    .clearCookie("AT", sessionCookieOptions)
+    .clearCookie("RT", sessionCookieOptions)
     .status(StatusCodes.ACCEPTED)
     .json(
       response.accepted(null, {

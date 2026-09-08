@@ -32,12 +32,15 @@ class Config {
   public DATABASE_URL: string | undefined;
   public JWT_TOKEN: string | undefined;
   public CLIENT_URL: string[];
+  public COOKIE_DOMAIN: string | undefined;
 
   constructor() {
     this.NODE_ENV = process.env["NODE_ENV"];
     this.DATABASE_URL = process.env["DATABASE_URL"];
     this.JWT_TOKEN = process.env["JWT_TOKEN"];
     this.CLIENT_URL = parseClientUrls(process.env["CLIENT_URL"]);
+    const cookieDomain = process.env["COOKIE_DOMAIN"]?.trim();
+    this.COOKIE_DOMAIN = cookieDomain === "" ? undefined : cookieDomain;
   }
 }
 
