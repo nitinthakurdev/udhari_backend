@@ -1,0 +1,36 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+           export NVM_DIR="/root/.nvm"
+           source "$NVM_DIR/nvm.sh"
+
+            node -v
+            npm -v
+
+            cd udhari/staging/udhari_backend
+
+           rm -rf node_modules dist 
+
+            git pull origin staging
+
+            npm ci
+
+            npm run build
+
+            npm run restart:stg
