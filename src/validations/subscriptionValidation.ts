@@ -16,6 +16,17 @@ const subscriptionFields = {
     .trim()
     .min(10, { error: subscriptionMessages.DESCRIPTION_MIN_LENGTH })
     .max(1000, { error: subscriptionMessages.DESCRIPTION_MAX_LENGTH }),
+  features: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(2, { error: subscriptionMessages.FEATURE_MIN_LENGTH })
+        .max(200, { error: subscriptionMessages.FEATURE_MAX_LENGTH }),
+      { error: subscriptionMessages.FEATURES_REQUIRED },
+    )
+    .min(1, { error: subscriptionMessages.FEATURES_MIN })
+    .max(20, { error: subscriptionMessages.FEATURES_MAX }),
   price: z
     .number({ error: subscriptionMessages.PRICE_REQUIRED })
     .nonnegative({ error: subscriptionMessages.PRICE_INVALID })
@@ -44,6 +55,7 @@ export const createSubscriptionValidationPayload = z.strictObject(
   {
     name: subscriptionFields.name,
     description: subscriptionFields.description,
+    features: subscriptionFields.features,
     price: subscriptionFields.price,
     currency: subscriptionFields.currency.optional(),
     duration: subscriptionFields.duration,
@@ -59,6 +71,7 @@ export const updateSubscriptionValidationPayload = z
     {
       name: subscriptionFields.name.optional(),
       description: subscriptionFields.description.optional(),
+      features: subscriptionFields.features.optional(),
       price: subscriptionFields.price.optional(),
       currency: subscriptionFields.currency.optional(),
       duration: subscriptionFields.duration.optional(),

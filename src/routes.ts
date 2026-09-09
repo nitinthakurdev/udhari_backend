@@ -5,12 +5,14 @@ import { authorization } from "./middlewares/authorizationMiddleware";
 import { organizationRoutes } from "./routes/organizationRoutes";
 import { requireAdmin } from "./middlewares/roleAuthorizationMiddleware";
 import { subscriptionRoutes } from "./routes/subscriptionRoutes";
+import { listPublicSubscriptions } from "./controllers/subscriptionController";
 
 export const appRouter = (): Router => {
   const routes: Router = Router();
   routes.use("/users", userRouter());
   routes.use("/roles", authorization, requireAdmin, roleRouter());
   routes.use("/organization", authorization, organizationRoutes());
+  routes.get("/subscriptions/public", listPublicSubscriptions);
   routes.use("/subscriptions", authorization, requireAdmin, subscriptionRoutes());
   return routes;
 };

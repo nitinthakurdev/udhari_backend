@@ -94,3 +94,49 @@ export const validateSignin = validateRequest({
   body: signinValidationPayload,
   errorMessage: userValidationMessages.SIGNIN_VALIDATION_FAILED,
 });
+
+const emailValidation = z
+  .string({ error: userValidationMessages.EMAIL_REQUIRED })
+  .trim()
+  .toLowerCase()
+  .min(1, { error: userValidationMessages.EMAIL_REQUIRED })
+  .max(254, { error: userValidationMessages.EMAIL_MAX_LENGTH })
+  .pipe(z.email({ error: userValidationMessages.EMAIL_INVALID }));
+
+const strongPasswordValidation = z
+  .string({ error: userValidationMessages.PASSWORD_REQUIRED })
+  .min(8, { error: userValidationMessages.PASSWORD_MIN_LENGTH })
+  .max(72, { error: userValidationMessages.PASSWORD_MAX_LENGTH })
+  .regex(/[a-z]/, { error: userValidationMessages.PASSWORD_LOWERCASE })
+  .regex(/[A-Z]/, { error: userValidationMessages.PASSWORD_UPPERCASE })
+  .regex(/\d/, { error: userValidationMessages.PASSWORD_NUMBER })
+  .regex(/[^a-zA-Z0-9]/, { error: userValidationMessages.PASSWORD_SPECIAL_CHARACTER });
+
+export const validateResendVerification = validateRequest({
+  body: z
+    .strictObject({
+      email: emailValidation.optional(),
+      token: z.string().trim().min(1).max(128).optional(),
+    })
+    .refine((data) => Boolean(data.email ?? data.token), {
+      error: userValidationMessages.VERIFICATION_IDENTIFIER_REQUIRED,
+    }),
+  errorMessage: userValidationMessages.VERIFICATION_VALIDATION_FAILED,
+});
+
+export const validateForgotPassword = validateRequest({
+  body: z.strictObject({ email: emailValidation }),
+  errorMessage: userValidationMessages.FORGOT_PASSWORD_VALIDATION_FAILED,
+});
+
+export const validateResetPassword = validateRequest({
+  body: z.strictObject({
+    token: z
+      .string()
+      .trim()
+      .min(1, { error: userValidationMessages.RESET_TOKEN_REQUIRED })
+      .max(128),
+    password: strongPasswordValidation,
+  }),
+  errorMessage: userValidationMessages.RESET_PASSWORD_VALIDATION_FAILED,
+});

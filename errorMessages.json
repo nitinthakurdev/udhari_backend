@@ -19,7 +19,8 @@
     "ACCOUNT_NOT_VERIFIED": "Your account hasn’t been verified yet. Please verify your email address to continue.",
     "VERIFICATION_TOKEN_REQUIRED": "Email verification token is required.",
     "VERIFICATION_TOKEN_INVALID": "This email verification link is invalid or has expired.",
-    "EMAIL_SEND_FAILED": "We could not send the verification email. Please try registering again."
+    "EMAIL_SEND_FAILED": "We could not send the email. Please try again.",
+    "RESET_TOKEN_INVALID": "This password reset link is invalid or has expired."
   },
   "ROLE": {
     "ALREADY_EXIST": "A role with this name or slag already exists."

@@ -91,6 +91,63 @@ export const verifyUserEmailByToken = async (token: string): Promise<boolean> =>
   return affectedCount === 1;
 };
 
+export const findUserByVerificationToken = async (
+  token: string,
+): Promise<IUserSchema | undefined> => {
+  const result = await userModel.findOne({ where: { verification_token: token } });
+  return result?.dataValues;
+};
+
+export const findUserByEmail = async (email: string): Promise<IUserSchema | undefined> => {
+  const result = await userModel.findOne({ where: { email } });
+  return result?.dataValues;
+};
+
+export const updateEmailVerificationToken = async (
+  id: number,
+  token: string,
+  expiry: Date,
+  transaction?: Transaction,
+): Promise<void> => {
+  await userModel.update(
+    { verification_token: token, verification_token_expiry: expiry },
+    { where: { id }, ...(transaction ? { transaction } : {}) },
+  );
+};
+
+export const updatePasswordResetToken = async (
+  id: number,
+  tokenHash: string,
+  expiry: Date,
+  transaction?: Transaction,
+): Promise<void> => {
+  await userModel.update(
+    { password_reset_token: tokenHash, password_reset_token_expiry: expiry },
+    { where: { id }, ...(transaction ? { transaction } : {}) },
+  );
+};
+
+export const resetPasswordByToken = async (
+  tokenHash: string,
+  password: string,
+): Promise<boolean> => {
+  const [affectedCount] = await userModel.update(
+    {
+      password,
+      password_reset_token: null,
+      password_reset_token_expiry: null,
+    },
+    {
+      where: {
+        password_reset_token: tokenHash,
+        password_reset_token_expiry: { [Op.gt]: new Date() },
+      },
+    },
+  );
+
+  return affectedCount === 1;
+};
+
 /*
 ==============================================================================
 ***************** find by email or username user service here ****************

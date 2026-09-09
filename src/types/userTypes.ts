@@ -16,6 +16,8 @@ export interface IUserSchema {
   is_phone_verified: boolean;
   verification_token: string | null;
   verification_token_expiry: Date | null;
+  password_reset_token: string | null;
+  password_reset_token_expiry: Date | null;
   organization_id: number | null;
   dial_code: string | null;
   otp: string | null;
@@ -41,6 +43,8 @@ export type IUserCreationSchema = Optional<
   | "is_phone_verified"
   | "verification_token"
   | "verification_token_expiry"
+  | "password_reset_token"
+  | "password_reset_token_expiry"
   | "organization_id"
   | "otp"
   | "otp_expiry"
@@ -73,6 +77,8 @@ export interface IUserUpdateSchema {
   is_phone_verified?: boolean;
   verification_token?: string | null;
   verification_token_expiry?: Date | null;
+  password_reset_token?: string | null;
+  password_reset_token_expiry?: Date | null;
   organization_id?: number | null;
   dial_code?: string | null;
   otp?: string | null;
@@ -95,6 +101,20 @@ export interface IUserCreateData extends IUserCreatePayload {
 export interface IUserSigninPayload {
   identifier: string;
   password: string;
+}
+
+export interface IForgotPasswordPayload {
+  email: string;
+}
+
+export interface IResetPasswordPayload {
+  token: string;
+  password: string;
+}
+
+export interface IResendVerificationPayload {
+  email?: string;
+  token?: string;
 }
 
 export type ICurrentUser = Pick<

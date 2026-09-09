@@ -54,6 +54,14 @@ const userModel = sequelize.define<IUserModel>(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    password_reset_token: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    password_reset_token_expiry: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
     otp: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -75,7 +83,7 @@ const userModel = sequelize.define<IUserModel>(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    organization_id:{
+    organization_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
     },
@@ -129,10 +137,13 @@ const userModel = sequelize.define<IUserModel>(
         unique: true,
         fields: ["verification_token"],
       },
+      {
+        name: "users_password_reset_token_unique",
+        unique: true,
+        fields: ["password_reset_token"],
+      },
     ],
   },
 );
-
-
 
 export { userModel };

@@ -1,15 +1,26 @@
 /* eslint-disable @typescript-eslint/require-await */
 import {
   createUser as createUserService,
+  findUserByEmail,
   findUserByEmailOrUsername,
   findUserByIdentifier,
+  findUserByVerificationToken,
   findUsers,
+  resetPasswordByToken,
   toPublicUser,
+  updateEmailVerificationToken,
+  updatePasswordResetToken,
   verifyUserEmailByToken,
 } from "@/services/userServices";
 import { sendEmail } from "@/services/emailService";
 import { findRoleBySlag } from "@/services/roleServices";
-import type { IUserCreatePayload, IUserSigninPayload } from "@/types/userTypes";
+import type {
+  IForgotPasswordPayload,
+  IResendVerificationPayload,
+  IResetPasswordPayload,
+  IUserCreatePayload,
+  IUserSigninPayload,
+} from "@/types/userTypes";
 import { config } from "@/config/envConfig";
 import {
   AsyncHandler,
@@ -24,7 +35,7 @@ import jwt from "jsonwebtoken";
 import type { CookieOptions } from "express";
 import successMessages from "../../successMessages.json";
 import errorMessages from "../../errorMessages.json";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { sequelize } from "@/config/dbConfig";
 
 const response = new HalSuccess();
@@ -36,6 +47,23 @@ const sessionCookieOptions: CookieOptions = {
   path: "/",
   ...(config.COOKIE_DOMAIN ? { domain: config.COOKIE_DOMAIN } : {}),
 };
+
+const createFrontendUrl = (pathname: string, token: string): string => {
+  if (!config.CLIENT_URL) {
+    throw new InternalServerError(errorMessages.USER.AUTH_CONFIGURATION_ERROR);
+  }
+
+  try {
+    const baseUrl = config.CLIENT_URL.endsWith("/") ? config.CLIENT_URL : `${config.CLIENT_URL}/`;
+    const url = new URL(pathname.replace(/^\//, ""), baseUrl);
+    url.searchParams.set("token", token);
+    return url.toString();
+  } catch {
+    throw new InternalServerError(errorMessages.USER.AUTH_CONFIGURATION_ERROR);
+  }
+};
+
+const hashToken = (token: string): string => createHash("sha256").update(token).digest("hex");
 
 export const listUsers = AsyncHandler(async (_req, res): Promise<void> => {
   const users = await findUsers();
@@ -69,11 +97,7 @@ export const signup = AsyncHandler(async (req, res): Promise<void> => {
 
   const verificationToken = randomBytes(32).toString("hex");
   const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  const requestHost = req.get("host");
-  if (!requestHost) {
-    throw new InternalServerError(errorMessages.USER.AUTH_CONFIGURATION_ERROR);
-  }
-  const verificationUrl = `${req.protocol}://${requestHost}/api/v1/users/verify-email?token=${encodeURIComponent(verificationToken)}`;
+  const verificationUrl = createFrontendUrl("/verify-email", verificationToken);
 
   const user = await sequelize.transaction(async (transaction) => {
     const createdUser = await createUserService(
@@ -133,6 +157,103 @@ export const verifyEmail = AsyncHandler(async (req, res): Promise<void> => {
       message: successMessages.USER.EMAIL_VERIFIED,
     }),
   );
+});
+
+export const resendVerificationEmail = AsyncHandler(async (req, res): Promise<void> => {
+  const { email, token } = req.body as IResendVerificationPayload;
+  let user = token ? await findUserByVerificationToken(token) : undefined;
+
+  if (!user && email) {
+    user = await findUserByEmail(email);
+  }
+
+  if (user && !user.is_email_verified) {
+    const verificationToken = randomBytes(32).toString("hex");
+    const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const verificationUrl = createFrontendUrl("/verify-email", verificationToken);
+
+    await sequelize.transaction(async (transaction) => {
+      await updateEmailVerificationToken(
+        user.id,
+        verificationToken,
+        verificationTokenExpiry,
+        transaction,
+      );
+
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: "Verify your Udhari account",
+          template: "verify-email",
+          data: { name: user.first_name, verificationUrl },
+          text: `Hi ${user.first_name}, verify your Udhari account by opening this link: ${verificationUrl}. This link expires in 24 hours.`,
+        });
+      } catch (error: unknown) {
+        console.error("Failed to resend verification email", error);
+        throw new InternalServerError(errorMessages.USER.EMAIL_SEND_FAILED);
+      }
+    });
+  }
+
+  res.status(StatusCodes.OK).json(
+    response.ok(null, {
+      message: successMessages.USER.VERIFICATION_EMAIL_SENT,
+    }),
+  );
+});
+
+export const forgotPassword = AsyncHandler(async (req, res): Promise<void> => {
+  const { email } = req.body as IForgotPasswordPayload;
+  const user = await findUserByEmail(email);
+
+  if (user) {
+    const resetToken = randomBytes(32).toString("hex");
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
+    const resetUrl = createFrontendUrl("/reset-password", resetToken);
+
+    await sequelize.transaction(async (transaction) => {
+      await updatePasswordResetToken(user.id, hashToken(resetToken), resetTokenExpiry, transaction);
+
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: "Reset your Udhari password",
+          template: "reset-password",
+          data: { name: user.first_name, resetUrl },
+          text: `Hi ${user.first_name}, reset your Udhari password by opening this link: ${resetUrl}. This one-time link expires in 1 hour.`,
+        });
+      } catch (error: unknown) {
+        console.error("Failed to send password reset email", error);
+        throw new InternalServerError(errorMessages.USER.EMAIL_SEND_FAILED);
+      }
+    });
+  }
+
+  res.status(StatusCodes.OK).json(
+    response.ok(null, {
+      message: successMessages.USER.PASSWORD_RESET_EMAIL_SENT,
+    }),
+  );
+});
+
+export const resetPassword = AsyncHandler(async (req, res): Promise<void> => {
+  const { token, password } = req.body as IResetPasswordPayload;
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const isReset = await resetPasswordByToken(hashToken(token), hashedPassword);
+
+  if (!isReset) {
+    throw new BadRequestError(errorMessages.USER.RESET_TOKEN_INVALID);
+  }
+
+  res
+    .clearCookie("AT", sessionCookieOptions)
+    .clearCookie("RT", sessionCookieOptions)
+    .status(StatusCodes.OK)
+    .json(
+      response.ok(null, {
+        message: successMessages.USER.PASSWORD_RESET,
+      }),
+    );
 });
 
 /*
