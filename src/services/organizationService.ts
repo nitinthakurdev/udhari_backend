@@ -7,6 +7,7 @@ import type {
   IOrganizationUpdateData,
 } from "@/types/organizationTypes";
 import { Op } from "sequelize";
+import { sequelize } from "@/config/dbConfig";
 
 const organizationAttributes: string[] = [
   "uuid",
@@ -120,10 +121,25 @@ export const setDefaultOrganizationByUuid = async (
 
   if (!organization) return undefined;
 
-  await userModel.update(
-    { organization_id: organization.id },
-    { where: { id: userId } },
-  );
+  await userModel.update({ organization_id: organization.id }, { where: { id: userId } });
 
   return toPublicOrganization(organization.dataValues);
 };
+
+export const deleteOrganizationByUuid = async (uuid: string, userId: number): Promise<boolean> =>
+  sequelize.transaction(async (transaction) => {
+    const organization = await organizationModel.findOne({
+      where: { uuid, created_by: userId },
+      transaction,
+    });
+
+    if (!organization) return false;
+
+    await userModel.update(
+      { organization_id: null },
+      { where: { organization_id: organization.id }, transaction },
+    );
+    await organization.update({ deleted_by: userId }, { transaction });
+    await organization.destroy({ transaction });
+    return true;
+  });

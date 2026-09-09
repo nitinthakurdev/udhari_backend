@@ -1,5 +1,6 @@
 import {
   createOrganization,
+  deleteOrganization,
   listOrganizations,
   setDefaultOrganization,
   updateOrganization,
@@ -17,9 +18,8 @@ export const organizationRoutes = (): Router => {
   routes.route("/list").get(listOrganizations);
   routes.route("/create").post(validateCreateOrganization, createOrganization);
   routes.route("/update/:uuid").patch(validateUpdateOrganization, updateOrganization);
-  routes
-    .route("/set-default/:uuid")
-    .patch(validateOrganizationUuid, setDefaultOrganization);
+  routes.route("/delete/:uuid").delete(validateOrganizationUuid, deleteOrganization);
+  routes.route("/set-default/:uuid").patch(validateOrganizationUuid, setDefaultOrganization);
 
   return routes;
 };

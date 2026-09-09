@@ -3,6 +3,7 @@ import type { IOrganizationPublic } from "@/types/organizationTypes";
 import type { IRoleSchema } from "@/types/roleTypes";
 
 export type IUserRole = Pick<IRoleSchema, "uuid" | "name" | "slug" | "created_at">;
+export type IUserUniqueField = "email" | "username" | "phone";
 
 export interface IUserSchema {
   id: number;

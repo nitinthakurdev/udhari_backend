@@ -25,6 +25,7 @@
     "CREATE": "Your organization, shop, or branch has been added successfully.",
     "LIST": "Organizations and shops fetched successfully.",
     "UPDATE": "Organization updated successfully.",
+    "DELETE": "Organization deleted successfully.",
     "SET_DEFAULT": "Default organization updated successfully."
   }
 }

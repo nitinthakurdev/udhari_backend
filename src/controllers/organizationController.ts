@@ -1,5 +1,6 @@
 import {
   createOrganization as createOrganizationService,
+  deleteOrganizationByUuid,
   findOrganizationsByCreator,
   findOrganizationWithNameAndSlug,
   setDefaultOrganizationByUuid,
@@ -73,12 +74,11 @@ export const createOrganization = AsyncHandler(async (req, res): Promise<void> =
     created_by: req.currentUser.id,
   });
 
-
   const role = await findRoleBySlag("organization");
 
   await findByIdAndUpdateWhere(
     { id: req.currentUser.id, organization_id: null },
-    { organization_id: result.id,...(role && {role_id:role.id}) },
+    { organization_id: result.id, ...(role && { role_id: role.id }) },
   );
 
   res
@@ -150,10 +150,7 @@ export const setDefaultOrganization = AsyncHandler(async (req, res): Promise<voi
     throw new BadRequestError(validationMessages.ORGANIZATION.UUID_INVALID);
   }
 
-  const result = await setDefaultOrganizationByUuid(
-    organizationUuid,
-    req.currentUser.id,
-  );
+  const result = await setDefaultOrganizationByUuid(organizationUuid, req.currentUser.id);
 
   if (!result) {
     throw new NotFoundError(errorMessages.ORGANIZATION.DEFAULT_NOT_FOUND);
@@ -162,4 +159,24 @@ export const setDefaultOrganization = AsyncHandler(async (req, res): Promise<voi
   res
     .status(StatusCodes.OK)
     .json(response.ok(result, { message: successMessages.ORGANIZATION.SET_DEFAULT }));
+});
+
+export const deleteOrganization = AsyncHandler(async (req, res): Promise<void> => {
+  if (!req.currentUser) {
+    throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
+  }
+
+  const organizationUuid = req.params["uuid"];
+  if (typeof organizationUuid !== "string") {
+    throw new BadRequestError(validationMessages.ORGANIZATION.UUID_INVALID);
+  }
+
+  const deleted = await deleteOrganizationByUuid(organizationUuid, req.currentUser.id);
+  if (!deleted) {
+    throw new NotFoundError(errorMessages.ORGANIZATION.NOT_FOUND);
+  }
+
+  res
+    .status(StatusCodes.OK)
+    .json(response.ok(null, { message: successMessages.ORGANIZATION.DELETE }));
 });

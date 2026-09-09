@@ -20,6 +20,7 @@ import type {
   IResetPasswordPayload,
   IUserCreatePayload,
   IUserSigninPayload,
+  IUserUniqueField,
 } from "@/types/userTypes";
 import { config } from "@/config/envConfig";
 import {
@@ -32,11 +33,12 @@ import {
 import { StatusCodes } from "http-status-codes";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import type { CookieOptions } from "express";
+import type { CookieOptions, Response } from "express";
 import successMessages from "../../successMessages.json";
 import errorMessages from "../../errorMessages.json";
 import { createHash, randomBytes } from "node:crypto";
 import { sequelize } from "@/config/dbConfig";
+import { usernameModifier } from "@/utils/slugMaker";
 
 const response = new HalSuccess();
 const isDeployedEnvironment = ["staging", "production"].includes(config.NODE_ENV ?? "");
@@ -65,6 +67,59 @@ const createFrontendUrl = (pathname: string, token: string): string => {
 
 const hashToken = (token: string): string => createHash("sha256").update(token).digest("hex");
 
+const assertUserFieldsAreUnique = (conflicts: IUserUniqueField[]): void => {
+  if (conflicts.length === 0) return;
+
+  const lastField = conflicts.at(-1) ?? "";
+  const precedingFields = conflicts.slice(0, -1);
+  const fieldList =
+    conflicts.length === 1
+      ? lastField
+      : `${precedingFields.join(", ")}${conflicts.length > 2 ? "," : ""} and ${lastField}`;
+  const message = `${fieldList.charAt(0).toUpperCase()}${fieldList.slice(1)} already ${conflicts.length === 1 ? "exists" : "exist"}.`;
+  const details = conflicts.map((field) => ({
+    field,
+    message: `${field.charAt(0).toUpperCase()}${field.slice(1)} already exists.`,
+  }));
+
+  throw new BadRequestError(message, details);
+};
+
+const createAuthenticatedSession = (
+  res: Response,
+  user: NonNullable<Awaited<ReturnType<typeof findUserByIdentifier>>>,
+) => {
+  const jwtSecret = config.JWT_TOKEN;
+  if (!jwtSecret) {
+    throw new InternalServerError(errorMessages.USER.AUTH_CONFIGURATION_ERROR);
+  }
+
+  const tokenPayload = { email: user.email, username: user.username };
+  const accessToken = jwt.sign(tokenPayload, jwtSecret, {
+    subject: user.uuid,
+    expiresIn: "7d",
+  });
+  const refreshToken = jwt.sign(tokenPayload, jwtSecret, {
+    subject: user.uuid,
+    expiresIn: "30d",
+  });
+
+  res.cookie("AT", accessToken, {
+    ...sessionCookieOptions,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+  res.cookie("RT", refreshToken, {
+    ...sessionCookieOptions,
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
+
+  return {
+    user: toPublicUser(user),
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  };
+};
+
 export const listUsers = AsyncHandler(async (_req, res): Promise<void> => {
   const users = await findUsers();
 
@@ -83,10 +138,10 @@ export const listUsers = AsyncHandler(async (_req, res): Promise<void> => {
 export const signup = AsyncHandler(async (req, res): Promise<void> => {
   const data = req.body as IUserCreatePayload;
 
-  const existUser = await findUserByEmailOrUsername(data.email, data.username);
-  if (existUser) {
-    throw new BadRequestError(errorMessages.USER.ALREADY_EXIST);
-  }
+  data.username = usernameModifier(data.username);
+
+  const conflicts = await findUserByEmailOrUsername(data.email, data.username, data.phone);
+  assertUserFieldsAreUnique(conflicts);
 
   const hashedPassword = await bcrypt.hash(data.password, 10);
   const defaultRole = await findRoleBySlag("user");
@@ -147,13 +202,25 @@ export const verifyEmail = AsyncHandler(async (req, res): Promise<void> => {
     throw new BadRequestError(errorMessages.USER.VERIFICATION_TOKEN_REQUIRED);
   }
 
+  const pendingUser = await findUserByVerificationToken(token);
+  if (!pendingUser) {
+    throw new BadRequestError(errorMessages.USER.VERIFICATION_TOKEN_INVALID);
+  }
+
   const isVerified = await verifyUserEmailByToken(token);
   if (!isVerified) {
     throw new BadRequestError(errorMessages.USER.VERIFICATION_TOKEN_INVALID);
   }
 
+  const verifiedUser = await findUserByIdentifier(pendingUser.email);
+  if (!verifiedUser) {
+    throw new InternalServerError(errorMessages.AUTHORIZATION.USER_NOT_FOUND);
+  }
+
+  const session = createAuthenticatedSession(res, verifiedUser);
+
   res.status(StatusCodes.OK).json(
-    response.ok(null, {
+    response.ok(session, {
       message: successMessages.USER.EMAIL_VERIFIED,
     }),
   );
@@ -278,60 +345,15 @@ export const signin = AsyncHandler(async (req, res): Promise<void> => {
     throw new BadRequestError(errorMessages.USER.ACCOUNT_NOT_VERIFIED);
   }
 
-  const authenticatedUser = toPublicUser(user);
-
-  const jwtSecret = config.JWT_TOKEN;
-  if (!jwtSecret) {
-    throw new InternalServerError(errorMessages.USER.AUTH_CONFIGURATION_ERROR);
-  }
-
-  const accessToken = jwt.sign(
-    {
-      email: user.email,
-      username: user.username,
-    },
-    jwtSecret,
-    {
-      subject: user.uuid,
-      expiresIn: "7d",
-    },
-  );
-
-  const refreshToken = jwt.sign(
-    {
-      email: user.email,
-      username: user.username,
-    },
-    jwtSecret,
-    {
-      subject: user.uuid,
-      expiresIn: "30d",
-    },
-  );
-
-  res.cookie("AT", accessToken, {
-    ...sessionCookieOptions,
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
-  res.cookie("RT", refreshToken, {
-    ...sessionCookieOptions,
-    maxAge: 30 * 24 * 60 * 60 * 1000,
-  });
+  const session = createAuthenticatedSession(res, user);
 
   const requestId = req.header("x-request-id");
 
   res.status(StatusCodes.OK).json(
-    response.ok(
-      {
-        user: authenticatedUser,
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      },
-      {
-        message: successMessages.USER.USER_SIGNED_IN,
-        ...(requestId ? { requestId } : {}),
-      },
-    ),
+    response.ok(session, {
+      message: successMessages.USER.USER_SIGNED_IN,
+      ...(requestId ? { requestId } : {}),
+    }),
   );
 });
 

@@ -7,6 +7,7 @@ import type {
   IUserCreateData,
   IUserPublic,
   IUserSchema,
+  IUserUniqueField,
   IUserUpdateSchema,
 } from "@/types/userTypes";
 import { Op, type Transaction, type WhereOptions } from "sequelize";
@@ -150,12 +151,21 @@ export const resetPasswordByToken = async (
 
 /*
 ==============================================================================
-***************** find by email or username user service here ****************
+***************** find by email, username, or phone service here *************
 ==============================================================================
  */
-export const findUserByEmailOrUsername = async (email: string, username: string) => {
-  const result = await userModel.findOne({ where: { [Op.or]: [{ email }, { username }] } });
-  return result?.dataValues;
+export const findUserByEmailOrUsername = async (email: string, username: string, phone: string) => {
+  const users = await userModel.findAll({
+    where: { [Op.or]: [{ email }, { username }, { phone }] },
+    attributes: ["email", "username", "phone"],
+  });
+
+  const conflicts: IUserUniqueField[] = [];
+  if (users.some((user) => user.email === email)) conflicts.push("email");
+  if (users.some((user) => user.username === username)) conflicts.push("username");
+  if (users.some((user) => user.phone === phone)) conflicts.push("phone");
+
+  return conflicts;
 };
 
 /*
