@@ -11,6 +11,7 @@ const sharedConfig = {
 
 module.exports = {
   development: sharedConfig,
+  staging: sharedConfig,
   test: sharedConfig,
   production: sharedConfig,
 };
