@@ -27,7 +27,7 @@ const subscriptionModel = sequelize.define<ISubscriptionModel>(
       allowNull: false,
       defaultValue: [],
     },
-    config:{
+    config: {
       type: DataTypes.JSONB,
       allowNull: true,
       defaultValue: {},

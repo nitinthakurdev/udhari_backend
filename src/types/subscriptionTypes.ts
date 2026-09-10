@@ -5,7 +5,7 @@ export const SUBSCRIPTION_DURATION_TYPES = ["MONTHLY", "YEARLY", "QUARTERLY"] as
 export type SubscriptionDurationType = (typeof SUBSCRIPTION_DURATION_TYPES)[number];
 
 export interface ISubscriptionConfig {
-  allowed_users:number
+  allowed_users: number;
 }
 
 export interface ISubscriptionSchema {
@@ -36,6 +36,7 @@ export type SubscriptionCreationSchema = Optional<
   | "currency"
   | "duration_type"
   | "is_active"
+  | "config"
   | "created_by"
   | "updated_by"
   | "deleted_by"
