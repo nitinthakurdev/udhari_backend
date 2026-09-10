@@ -1,9 +1,9 @@
 import { sequelize } from "@/config/dbConfig";
-import type { IOrganizationModel } from "@/types/organizationTypes";
+import type { IBusinessModel } from "@/types/businessTypes";
 import { DataTypes } from "sequelize";
 
-const organizationModel = sequelize.define<IOrganizationModel>(
-  "OrganizationModel",
+const businessModel = sequelize.define<IBusinessModel>(
+  "BusinessModel",
   {
     id: {
       type: DataTypes.INTEGER,
@@ -74,25 +74,23 @@ const organizationModel = sequelize.define<IOrganizationModel>(
     },
   },
   {
-    tableName: "organizations",
+    tableName: "businesses",
     timestamps: true,
     paranoid: true,
     createdAt: "created_at",
     updatedAt: "updated_at",
     deletedAt: "deleted_at",
-    indexes:[
+    indexes: [
       {
-        unique:true,
-        fields:["name"]
+        unique: true,
+        fields: ["name"],
       },
       {
         unique: true,
-        fields: ["slug"]
-      }
-    ]
+        fields: ["slug"],
+      },
+    ],
   },
 );
 
-
-
-export { organizationModel };
+export { businessModel };

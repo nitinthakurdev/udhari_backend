@@ -17,12 +17,14 @@ import { dbConnection } from "./config/dbConfig";
 import { StatusCodes } from "http-status-codes";
 import compressor from "compression";
 import cookieParser from "cookie-parser";
-
-// ---------- all associations import below here ---------
-import "./association/userAssociation";
 import { config } from "./config/envConfig";
 
-const SERVER_PORT = config.NODE_ENV === "staging" ? 5003 :  5001;
+// ---------- all associations import below here ---------
+
+import "./association/userAssociation";
+import "./association/customerManagementAssociation";
+
+const SERVER_PORT = config.NODE_ENV === "staging" ? 5003 : 5001;
 
 export const Start = (app: Application): void => {
   securityMiddleware(app);

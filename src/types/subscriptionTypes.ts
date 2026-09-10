@@ -4,6 +4,10 @@ export const SUBSCRIPTION_DURATION_TYPES = ["MONTHLY", "YEARLY", "QUARTERLY"] as
 
 export type SubscriptionDurationType = (typeof SUBSCRIPTION_DURATION_TYPES)[number];
 
+export interface ISubscriptionConfig {
+  allowed_users:number
+}
+
 export interface ISubscriptionSchema {
   id: number;
   uuid: string;
@@ -15,6 +19,7 @@ export interface ISubscriptionSchema {
   duration: number;
   duration_type: SubscriptionDurationType;
   is_active: boolean;
+  config: ISubscriptionConfig;
   role_id: number;
   created_by: number | null;
   updated_by: number | null;
@@ -86,5 +91,5 @@ export type ISubscriptionPublic = Pick<
 };
 
 export type ISubscriptionPricingPlan = ISubscriptionPublic & {
-  role: { name: string; slug: "user" | "organization" };
+  role: { name: string; slug: "user" | "business" };
 };

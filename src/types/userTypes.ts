@@ -1,5 +1,5 @@
 import type { Model, Optional } from "sequelize";
-import type { IOrganizationPublic } from "@/types/organizationTypes";
+import type { IBusinessPublic } from "@/types/businessTypes";
 import type { IRoleSchema } from "@/types/roleTypes";
 
 export type IUserRole = Pick<IRoleSchema, "uuid" | "name" | "slug" | "created_at">;
@@ -19,7 +19,7 @@ export interface IUserSchema {
   verification_token_expiry: Date | null;
   password_reset_token: string | null;
   password_reset_token_expiry: Date | null;
-  organization_id: number | null;
+  business_id: number | null;
   dial_code: string | null;
   otp: string | null;
   otp_expiry: Date | null;
@@ -31,7 +31,7 @@ export interface IUserSchema {
   updated_at: Date;
   deleted_at: Date | null;
   user_role?: IUserRole;
-  organization?: IOrganizationPublic | null;
+  business?: IBusinessPublic | null;
 }
 
 export type IUserCreationSchema = Optional<
@@ -46,7 +46,7 @@ export type IUserCreationSchema = Optional<
   | "verification_token_expiry"
   | "password_reset_token"
   | "password_reset_token_expiry"
-  | "organization_id"
+  | "business_id"
   | "otp"
   | "otp_expiry"
   | "score"
@@ -80,7 +80,7 @@ export interface IUserUpdateSchema {
   verification_token_expiry?: Date | null;
   password_reset_token?: string | null;
   password_reset_token_expiry?: Date | null;
-  organization_id?: number | null;
+  business_id?: number | null;
   dial_code?: string | null;
   otp?: string | null;
   otp_expiry?: Date | null;
@@ -133,7 +133,7 @@ export type ICurrentUser = Pick<
   | "created_at"
 > & {
   user_role?: IUserRole;
-  organization?: IOrganizationPublic | null;
+  business?: IBusinessPublic | null;
 };
 
 export type IUserPublic = Pick<
@@ -168,5 +168,5 @@ export type IUserAdminListItem = Pick<
   | "created_at"
   | "updated_at"
   | "user_role"
-  | "organization"
+  | "business"
 >;

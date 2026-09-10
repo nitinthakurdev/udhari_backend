@@ -6,7 +6,7 @@ const { Op, QueryTypes } = require("sequelize");
 const ROLE_SEEDS = [
   { name: "Admin", slug: "admin" },
   { name: "User", slug: "user" },
-  { name: "Organization", slug: "organization" },
+  { name: "Business", slug: "business" },
 ];
 
 const ADMIN_SEED = {

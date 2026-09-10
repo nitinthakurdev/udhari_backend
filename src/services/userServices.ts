@@ -1,4 +1,4 @@
-import { organizationModel } from "@/models/organizationModel";
+import { businessModel } from "@/models/businessModel";
 import { roleModel } from "@/models/roleModel";
 import { userModel } from "@/models/userModel";
 import type {
@@ -41,9 +41,9 @@ const includesHandle = {
     as: "user_role",
     attributes: ["uuid", "name", "slug", "created_at"],
   },
-  organizationInclude: {
-    model: organizationModel,
-    as: "organization",
+  businessInclude: {
+    model: businessModel,
+    as: "business",
     attributes: [
       "uuid",
       "name",
@@ -192,7 +192,7 @@ export const findUserByIdentifier = async (
 export const findUserByUsername = async (username: string): Promise<ICurrentUser | undefined> => {
   const result = await userModel.findOne({
     where: { username },
-    include: [includesHandle.roleInclude, includesHandle.organizationInclude],
+    include: [includesHandle.roleInclude, includesHandle.businessInclude],
     attributes: [
       "id",
       "uuid",
@@ -255,7 +255,7 @@ export const findUsers = async (): Promise<IUserAdminListItem[]> => {
       "created_at",
       "updated_at",
     ],
-    include: [includesHandle.roleInclude, includesHandle.organizationInclude],
+    include: [includesHandle.roleInclude, includesHandle.businessInclude],
     order: [["created_at", "DESC"]],
   });
 
@@ -276,7 +276,7 @@ export const findUsers = async (): Promise<IUserAdminListItem[]> => {
       created_at: values.created_at,
       updated_at: values.updated_at,
       ...(values.user_role ? { user_role: values.user_role } : {}),
-      ...(values.organization !== undefined ? { organization: values.organization } : {}),
+      ...(values.business !== undefined ? { business: values.business } : {}),
     };
   });
 };

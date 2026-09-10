@@ -30,9 +30,9 @@
     "NOT_FOUND": "Subscription not found.",
     "ROLE_NOT_FOUND": "The selected role was not found."
   },
-  "ORGANIZATION": {
-    "EXIST": "An organization with this name already exists. Please choose a different name and try again.",
-    "NOT_FOUND": "Organization not found or you do not have permission to update it.",
-    "DEFAULT_NOT_FOUND": "Organization not found or you do not have permission to set it as default."
+  "BUSINESS": {
+    "EXIST": "A business with this name already exists. Please choose a different name and try again.",
+    "NOT_FOUND": "Business not found or you do not have permission to update it.",
+    "DEFAULT_NOT_FOUND": "Business not found or you do not have permission to set it as default."
   }
 }

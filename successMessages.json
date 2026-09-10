@@ -21,11 +21,11 @@
     "UPDATE": "Subscription updated successfully.",
     "DELETE": "Subscription deleted successfully."
   },
-  "ORGANIZATION": {
-    "CREATE": "Your organization, shop, or branch has been added successfully.",
-    "LIST": "Organizations and shops fetched successfully.",
-    "UPDATE": "Organization updated successfully.",
-    "DELETE": "Organization deleted successfully.",
-    "SET_DEFAULT": "Default organization updated successfully."
+  "BUSINESS": {
+    "CREATE": "Your business, shop, or branch has been added successfully.",
+    "LIST": "Businesses and shops fetched successfully.",
+    "UPDATE": "Business updated successfully.",
+    "DELETE": "Business deleted successfully.",
+    "SET_DEFAULT": "Default business updated successfully."
   }
 }

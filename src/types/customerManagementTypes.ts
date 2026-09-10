@@ -4,7 +4,7 @@ export interface ICustomerManagementSchema {
   id: number;
   uuid: string;
   connect_user_id: number;
-  organization_id: number;
+  business_id: number;
   role: string;
   updated_by: number | null;
   deleted_by: number | null;
@@ -24,10 +24,9 @@ export interface ICustomerManagementModel
     Model<ICustomerManagementSchema, CustomerManagementCreationSchema>,
     ICustomerManagementSchema {}
 
-
-    export interface ICustomerManagementPayload {
-      connect_user_id: number;
-      organization_id: number;
-      role: string;
-      created_by: number
-    }
+export interface ICustomerManagementPayload {
+  connect_user_id: number;
+  business_id: number;
+  role: string;
+  created_by: number;
+}

@@ -58,10 +58,10 @@ export const findSubscriptions = async (): Promise<ISubscriptionPublic[]> => {
 export const findPublicSubscriptions = async (): Promise<ISubscriptionPricingPlan[]> => {
   const roles = await roleModel.findAll({
     attributes: ["id", "name", "slug"],
-    where: { slug: { [Op.in]: ["user", "organization"] } },
+    where: { slug: { [Op.in]: ["user", "business"] } },
   });
   const publicRoles = new Map(
-    roles.map((role) => [role.id, { name: role.name, slug: role.slug as "user" | "organization" }]),
+    roles.map((role) => [role.id, { name: role.name, slug: role.slug as "user" | "business" }]),
   );
   const subscriptions = await subscriptionModel.findAll({
     attributes: subscriptionAttributes,
@@ -72,7 +72,7 @@ export const findPublicSubscriptions = async (): Promise<ISubscriptionPricingPla
     ],
     where: { is_active: true, role_id: { [Op.in]: [...publicRoles.keys()] } },
   });
-  const roleOrder = { user: 0, organization: 1 } as const;
+  const roleOrder = { user: 0, business: 1 } as const;
 
   return subscriptions
     .flatMap((subscription) => {

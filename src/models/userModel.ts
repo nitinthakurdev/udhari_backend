@@ -83,7 +83,7 @@ const userModel = sequelize.define<IUserModel>(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    organization_id: {
+    business_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
     },
