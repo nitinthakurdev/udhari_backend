@@ -27,7 +27,7 @@ jobs:
 
            rm -rf node_modules dist 
 
-            git pull origin staging
+            git pull origin main
 
             npm ci
 
