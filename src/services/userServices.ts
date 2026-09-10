@@ -1,8 +1,16 @@
-import { organizationModel } from "@/models/organizationModel";
+import { businessModel } from "@/models/businessModel";
 import { roleModel } from "@/models/roleModel";
 import { userModel } from "@/models/userModel";
-import type { ICurrentUser, IUserAdminListItem, IUserCreateData, IUserPublic, IUserSchema, IUserUpdateSchema } from "@/types/userTypes";
-import { Op, type WhereOptions } from "sequelize";
+import type {
+  ICurrentUser,
+  IUserAdminListItem,
+  IUserCreateData,
+  IUserPublic,
+  IUserSchema,
+  IUserUniqueField,
+  IUserUpdateSchema,
+} from "@/types/userTypes";
+import { Op, type Transaction, type WhereOptions } from "sequelize";
 
 // ----------- create user data formate handle is here --------------
 export const toPublicUser = (user: IUserSchema): IUserPublic => ({
@@ -21,46 +29,143 @@ export const toPublicUser = (user: IUserSchema): IUserPublic => ({
   ...(user.user_role ? { user_role: user.user_role } : {}),
 });
 
-
-
 /*
 ==============================================================================
 ********************** all the user related includes here ********************
 ==============================================================================
  */
 
-
 const includesHandle = {
-  roleInclude : {
+  roleInclude: {
     model: roleModel,
     as: "user_role",
     attributes: ["uuid", "name", "slug", "created_at"],
   },
-  organizationInclude : {
-    model: organizationModel,
-    as: "organization",
-    attributes: ["uuid", "name", "slug", "country", "state", "city", "pincode", "address", "address_2", "created_at","updated_at"]
-  }
-}
+  businessInclude: {
+    model: businessModel,
+    as: "business",
+    attributes: [
+      "uuid",
+      "name",
+      "slug",
+      "country",
+      "state",
+      "city",
+      "pincode",
+      "address",
+      "address_2",
+      "created_at",
+      "updated_at",
+    ],
+  },
+};
 
 /*
 ==============================================================================
 ********************** create user service here ******************************
 ==============================================================================
  */
-export const createUser = async (data: IUserCreateData): Promise<IUserPublic> => {
-  const result = await userModel.create(data);
+export const createUser = async (
+  data: IUserCreateData,
+  transaction?: Transaction,
+): Promise<IUserPublic> => {
+  const result = await userModel.create(data, transaction ? { transaction } : {});
   return toPublicUser(result.dataValues);
+};
+
+export const verifyUserEmailByToken = async (token: string): Promise<boolean> => {
+  const [affectedCount] = await userModel.update(
+    {
+      is_email_verified: true,
+      verification_token: null,
+      verification_token_expiry: null,
+    },
+    {
+      where: {
+        verification_token: token,
+        verification_token_expiry: { [Op.gt]: new Date() },
+        is_email_verified: false,
+      },
+    },
+  );
+
+  return affectedCount === 1;
+};
+
+export const findUserByVerificationToken = async (
+  token: string,
+): Promise<IUserSchema | undefined> => {
+  const result = await userModel.findOne({ where: { verification_token: token } });
+  return result?.dataValues;
+};
+
+export const findUserByEmail = async (email: string): Promise<IUserSchema | undefined> => {
+  const result = await userModel.findOne({ where: { email } });
+  return result?.dataValues;
+};
+
+export const updateEmailVerificationToken = async (
+  id: number,
+  token: string,
+  expiry: Date,
+  transaction?: Transaction,
+): Promise<void> => {
+  await userModel.update(
+    { verification_token: token, verification_token_expiry: expiry },
+    { where: { id }, ...(transaction ? { transaction } : {}) },
+  );
+};
+
+export const updatePasswordResetToken = async (
+  id: number,
+  tokenHash: string,
+  expiry: Date,
+  transaction?: Transaction,
+): Promise<void> => {
+  await userModel.update(
+    { password_reset_token: tokenHash, password_reset_token_expiry: expiry },
+    { where: { id }, ...(transaction ? { transaction } : {}) },
+  );
+};
+
+export const resetPasswordByToken = async (
+  tokenHash: string,
+  password: string,
+): Promise<boolean> => {
+  const [affectedCount] = await userModel.update(
+    {
+      password,
+      password_reset_token: null,
+      password_reset_token_expiry: null,
+    },
+    {
+      where: {
+        password_reset_token: tokenHash,
+        password_reset_token_expiry: { [Op.gt]: new Date() },
+      },
+    },
+  );
+
+  return affectedCount === 1;
 };
 
 /*
 ==============================================================================
-***************** find by email or username user service here ****************
+***************** find by email, username, or phone service here *************
 ==============================================================================
  */
-export const findUserByEmailOrUsername = async (email: string, username: string) => {
-  const result = await userModel.findOne({ where: { [Op.or]: [{ email }, { username }] } });
-  return result?.dataValues;
+export const findUserByEmailOrUsername = async (email: string, username: string, phone: string) => {
+  const users = await userModel.findAll({
+    where: { [Op.or]: [{ email }, { username }, { phone }] },
+    attributes: ["email", "username", "phone"],
+  });
+
+  const conflicts: IUserUniqueField[] = [];
+  if (users.some((user) => user.email === email)) conflicts.push("email");
+  if (users.some((user) => user.username === username)) conflicts.push("username");
+  if (users.some((user) => user.phone === phone)) conflicts.push("phone");
+
+  return conflicts;
 };
 
 /*
@@ -73,7 +178,7 @@ export const findUserByIdentifier = async (
 ): Promise<IUserSchema | undefined> => {
   const result = await userModel.findOne({
     where: { [Op.or]: [{ email: identifier }, { username: identifier }] },
-    include:[includesHandle.roleInclude]
+    include: [includesHandle.roleInclude],
   });
 
   return result?.dataValues;
@@ -87,7 +192,7 @@ export const findUserByIdentifier = async (
 export const findUserByUsername = async (username: string): Promise<ICurrentUser | undefined> => {
   const result = await userModel.findOne({
     where: { username },
-    include: [includesHandle.roleInclude,includesHandle.organizationInclude],
+    include: [includesHandle.roleInclude, includesHandle.businessInclude],
     attributes: [
       "id",
       "uuid",
@@ -112,11 +217,13 @@ export const findUserByUsername = async (username: string): Promise<ICurrentUser
 ==============================================================================
  */
 
-export const findByIdAndUpdate = async (id: number, data: IUserUpdateSchema): Promise< [affectedCount: number]> => {
-  const result = await userModel.update(data,{where:{id}});
+export const findByIdAndUpdate = async (
+  id: number,
+  data: IUserUpdateSchema,
+): Promise<[affectedCount: number]> => {
+  const result = await userModel.update(data, { where: { id } });
   return result;
 };
-
 
 /*
 ==============================================================================
@@ -124,8 +231,11 @@ export const findByIdAndUpdate = async (id: number, data: IUserUpdateSchema): Pr
 ==============================================================================
  */
 
-export const findByIdAndUpdateWhere = async (where: WhereOptions<IUserSchema>, data: IUserUpdateSchema): Promise<[affectedCount: number]> => {
-  const result = await userModel.update(data, { where:where });
+export const findByIdAndUpdateWhere = async (
+  where: WhereOptions<IUserSchema>,
+  data: IUserUpdateSchema,
+): Promise<[affectedCount: number]> => {
+  const result = await userModel.update(data, { where: where });
   return result;
 };
 
@@ -145,7 +255,7 @@ export const findUsers = async (): Promise<IUserAdminListItem[]> => {
       "created_at",
       "updated_at",
     ],
-    include: [includesHandle.roleInclude, includesHandle.organizationInclude],
+    include: [includesHandle.roleInclude, includesHandle.businessInclude],
     order: [["created_at", "DESC"]],
   });
 
@@ -166,9 +276,7 @@ export const findUsers = async (): Promise<IUserAdminListItem[]> => {
       created_at: values.created_at,
       updated_at: values.updated_at,
       ...(values.user_role ? { user_role: values.user_role } : {}),
-      ...(values.organization !== undefined
-        ? { organization: values.organization }
-        : {}),
+      ...(values.business !== undefined ? { business: values.business } : {}),
     };
   });
 };

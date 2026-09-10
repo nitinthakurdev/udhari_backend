@@ -1,4 +1,4 @@
-import { organizationModel } from "@/models/organizationModel";
+import { businessModel } from "@/models/businessModel";
 import { roleModel } from "@/models/roleModel";
 import { userModel } from "@/models/userModel";
 import { subscriptionModel } from "@/models/subscriptionModel";
@@ -9,6 +9,6 @@ userModel.belongsTo(roleModel, { foreignKey: "role_id", as: "user_role" });
 roleModel.hasMany(subscriptionModel, { foreignKey: "role_id", as: "subscriptions" });
 subscriptionModel.belongsTo(roleModel, { foreignKey: "role_id", as: "role" });
 
-// -------------- organization association --------------
-organizationModel.hasOne(userModel, { foreignKey: "organization_id", as: "owner" });
-userModel.belongsTo(organizationModel, { foreignKey: "organization_id", as: "organization" });
+// -------------- business association --------------
+businessModel.hasOne(userModel, { foreignKey: "business_id", as: "owner" });
+userModel.belongsTo(businessModel, { foreignKey: "business_id", as: "business" });

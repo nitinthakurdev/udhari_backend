@@ -1,8 +1,9 @@
 import type { Model, Optional } from "sequelize";
-import type { IOrganizationPublic } from "@/types/organizationTypes";
+import type { IBusinessPublic } from "@/types/businessTypes";
 import type { IRoleSchema } from "@/types/roleTypes";
 
 export type IUserRole = Pick<IRoleSchema, "uuid" | "name" | "slug" | "created_at">;
+export type IUserUniqueField = "email" | "username" | "phone";
 
 export interface IUserSchema {
   id: number;
@@ -16,7 +17,9 @@ export interface IUserSchema {
   is_phone_verified: boolean;
   verification_token: string | null;
   verification_token_expiry: Date | null;
-  organization_id: number | null;
+  password_reset_token: string | null;
+  password_reset_token_expiry: Date | null;
+  business_id: number | null;
   dial_code: string | null;
   otp: string | null;
   otp_expiry: Date | null;
@@ -28,7 +31,7 @@ export interface IUserSchema {
   updated_at: Date;
   deleted_at: Date | null;
   user_role?: IUserRole;
-  organization?: IOrganizationPublic | null;
+  business?: IBusinessPublic | null;
 }
 
 export type IUserCreationSchema = Optional<
@@ -41,7 +44,9 @@ export type IUserCreationSchema = Optional<
   | "is_phone_verified"
   | "verification_token"
   | "verification_token_expiry"
-  | "organization_id"
+  | "password_reset_token"
+  | "password_reset_token_expiry"
+  | "business_id"
   | "otp"
   | "otp_expiry"
   | "score"
@@ -51,7 +56,7 @@ export type IUserCreationSchema = Optional<
   | "deleted_at"
 >;
 
-export interface IUserModel extends Model<IUserSchema, IUserCreationSchema>, IUserSchema { }
+export interface IUserModel extends Model<IUserSchema, IUserCreationSchema>, IUserSchema {}
 
 export interface IUserCreatePayload {
   first_name: string;
@@ -73,7 +78,9 @@ export interface IUserUpdateSchema {
   is_phone_verified?: boolean;
   verification_token?: string | null;
   verification_token_expiry?: Date | null;
-  organization_id?: number | null;
+  password_reset_token?: string | null;
+  password_reset_token_expiry?: Date | null;
+  business_id?: number | null;
   dial_code?: string | null;
   otp?: string | null;
   otp_expiry?: Date | null;
@@ -86,14 +93,29 @@ export interface IUserUpdateSchema {
   deleted_at?: Date | null;
 }
 
-
 export interface IUserCreateData extends IUserCreatePayload {
   role_id: number;
+  verification_token?: string | null;
+  verification_token_expiry?: Date | null;
 }
 
 export interface IUserSigninPayload {
   identifier: string;
   password: string;
+}
+
+export interface IForgotPasswordPayload {
+  email: string;
+}
+
+export interface IResetPasswordPayload {
+  token: string;
+  password: string;
+}
+
+export interface IResendVerificationPayload {
+  email?: string;
+  token?: string;
 }
 
 export type ICurrentUser = Pick<
@@ -111,7 +133,7 @@ export type ICurrentUser = Pick<
   | "created_at"
 > & {
   user_role?: IUserRole;
-  organization?: IOrganizationPublic | null;
+  business?: IBusinessPublic | null;
 };
 
 export type IUserPublic = Pick<
@@ -146,5 +168,5 @@ export type IUserAdminListItem = Pick<
   | "created_at"
   | "updated_at"
   | "user_role"
-  | "organization"
+  | "business"
 >;

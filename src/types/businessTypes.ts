@@ -1,6 +1,6 @@
 import type { Model, Optional } from "sequelize";
 
-export interface IOrganizationSchema {
+export interface IBusinessSchema {
   id: number;
   uuid: string;
   name: string;
@@ -19,8 +19,8 @@ export interface IOrganizationSchema {
   deleted_at: Date | null;
 }
 
-export type OrganizationCreationSchema = Optional<
-  IOrganizationSchema,
+export type BusinessCreationSchema = Optional<
+  IBusinessSchema,
   | "id"
   | "uuid"
   | "address_2"
@@ -32,27 +32,24 @@ export type OrganizationCreationSchema = Optional<
   | "deleted_at"
 >;
 
-export interface IOrganizationModel
-  extends Model<IOrganizationSchema, OrganizationCreationSchema>, IOrganizationSchema {}
+export interface IBusinessModel
+  extends Model<IBusinessSchema, BusinessCreationSchema>, IBusinessSchema {}
 
-export type IOrganizationCreatePayload = Pick<
-  IOrganizationSchema,
+export type IBusinessCreatePayload = Pick<
+  IBusinessSchema,
   "name" | "slug" | "country" | "state" | "city" | "pincode" | "address"
 > &
-  Partial<Pick<IOrganizationSchema, "address_2" | "created_by">>;
+  Partial<Pick<IBusinessSchema, "address_2" | "created_by">>;
 
-export type IOrganizationUpdatePayload = Partial<
-  Pick<
-    IOrganizationSchema,
-    "name" | "country" | "state" | "city" | "pincode" | "address" | "address_2"
-  >
+export type IBusinessUpdatePayload = Partial<
+  Pick<IBusinessSchema, "name" | "country" | "state" | "city" | "pincode" | "address" | "address_2">
 >;
 
-export type IOrganizationUpdateData = IOrganizationUpdatePayload &
-  Partial<Pick<IOrganizationSchema, "slug" | "updated_by">>;
+export type IBusinessUpdateData = IBusinessUpdatePayload &
+  Partial<Pick<IBusinessSchema, "slug" | "updated_by">>;
 
-export type IOrganizationPublic = Pick<
-  IOrganizationSchema,
+export type IBusinessPublic = Pick<
+  IBusinessSchema,
   | "uuid"
   | "name"
   | "slug"

@@ -1,13 +1,23 @@
 import {
+  forgotPassword,
   listUsers,
   loginUserDetails,
   logoutUser,
+  resendVerificationEmail,
+  resetPassword,
   signin,
   signup,
+  verifyEmail,
 } from "@/controllers/userCantroller";
 import { authorization } from "@/middlewares/authorizationMiddleware";
 import { requireAdmin } from "@/middlewares/roleAuthorizationMiddleware";
-import { validateSignin, validateSignup } from "@/validations/userValidation";
+import {
+  validateForgotPassword,
+  validateResendVerification,
+  validateResetPassword,
+  validateSignin,
+  validateSignup,
+} from "@/validations/userValidation";
 import { Router } from "express";
 
 export const userRouter = (): Router => {
@@ -20,6 +30,10 @@ export const userRouter = (): Router => {
    */
   routes.route("/sign-up").post(validateSignup, signup);
   routes.route("/sign-in").post(validateSignin, signin);
+  routes.route("/verify-email").get(verifyEmail);
+  routes.route("/resend-verification").post(validateResendVerification, resendVerificationEmail);
+  routes.route("/forgot-password").post(validateForgotPassword, forgotPassword);
+  routes.route("/reset-password").post(validateResetPassword, resetPassword);
 
   /*
  ================================================================================

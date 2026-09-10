@@ -1,6 +1,8 @@
 import { subscriptionModel } from "@/models/subscriptionModel";
+import { roleModel } from "@/models/roleModel";
 import type {
   ISubscriptionCreatePayload,
+  ISubscriptionPricingPlan,
   ISubscriptionPublic,
   ISubscriptionSchema,
   ISubscriptionUpdateData,
@@ -11,6 +13,7 @@ const subscriptionAttributes: string[] = [
   "uuid",
   "name",
   "description",
+  "features",
   "price",
   "currency",
   "duration",
@@ -25,6 +28,7 @@ const toPublicSubscription = (subscription: ISubscriptionSchema): ISubscriptionP
   uuid: subscription.uuid,
   name: subscription.name,
   description: subscription.description,
+  features: Array.isArray(subscription.features) ? subscription.features : [],
   price: Number(subscription.price),
   currency: subscription.currency,
   duration: subscription.duration,
@@ -49,6 +53,34 @@ export const findSubscriptions = async (): Promise<ISubscriptionPublic[]> => {
   });
 
   return subscriptions.map((subscription) => toPublicSubscription(subscription.dataValues));
+};
+
+export const findPublicSubscriptions = async (): Promise<ISubscriptionPricingPlan[]> => {
+  const roles = await roleModel.findAll({
+    attributes: ["id", "name", "slug"],
+    where: { slug: { [Op.in]: ["user", "business"] } },
+  });
+  const publicRoles = new Map(
+    roles.map((role) => [role.id, { name: role.name, slug: role.slug as "user" | "business" }]),
+  );
+  const subscriptions = await subscriptionModel.findAll({
+    attributes: subscriptionAttributes,
+    order: [
+      ["price", "ASC"],
+      ["duration", "ASC"],
+      ["name", "ASC"],
+    ],
+    where: { is_active: true, role_id: { [Op.in]: [...publicRoles.keys()] } },
+  });
+  const roleOrder = { user: 0, business: 1 } as const;
+
+  return subscriptions
+    .flatMap((subscription) => {
+      const plan = toPublicSubscription(subscription.dataValues);
+      const role = publicRoles.get(plan.role_id);
+      return role ? [{ ...plan, role }] : [];
+    })
+    .sort((left, right) => roleOrder[left.role.slug] - roleOrder[right.role.slug]);
 };
 
 export const findSubscriptionByUuid = async (

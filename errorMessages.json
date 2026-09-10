@@ -16,7 +16,11 @@
     "INVALID_CREDENTIALS": "Invalid email, username, or password.",
     "AUTH_CONFIGURATION_ERROR": "Authentication is not configured.",
     "DEFAULT_ROLE_NOT_FOUND": "The default user role is not configured.",
-    "ACCOUNT_NOT_VERIFIED": "Your account hasn’t been verified yet. Please verify your email address to continue."
+    "ACCOUNT_NOT_VERIFIED": "Your account hasn’t been verified yet. Please verify your email address to continue.",
+    "VERIFICATION_TOKEN_REQUIRED": "Email verification token is required.",
+    "VERIFICATION_TOKEN_INVALID": "This email verification link is invalid or has expired.",
+    "EMAIL_SEND_FAILED": "We could not send the email. Please try again.",
+    "RESET_TOKEN_INVALID": "This password reset link is invalid or has expired."
   },
   "ROLE": {
     "ALREADY_EXIST": "A role with this name or slag already exists."
@@ -26,9 +30,9 @@
     "NOT_FOUND": "Subscription not found.",
     "ROLE_NOT_FOUND": "The selected role was not found."
   },
-  "ORGANIZATION": {
-    "EXIST": "An organization with this name already exists. Please choose a different name and try again.",
-    "NOT_FOUND": "Organization not found or you do not have permission to update it.",
-    "DEFAULT_NOT_FOUND": "Organization not found or you do not have permission to set it as default."
+  "BUSINESS": {
+    "EXIST": "A business with this name already exists. Please choose a different name and try again.",
+    "NOT_FOUND": "Business not found or you do not have permission to update it.",
+    "DEFAULT_NOT_FOUND": "Business not found or you do not have permission to set it as default."
   }
 }

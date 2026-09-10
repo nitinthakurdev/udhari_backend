@@ -4,16 +4,22 @@ export const SUBSCRIPTION_DURATION_TYPES = ["MONTHLY", "YEARLY", "QUARTERLY"] as
 
 export type SubscriptionDurationType = (typeof SUBSCRIPTION_DURATION_TYPES)[number];
 
+export interface ISubscriptionConfig {
+  allowed_users: number;
+}
+
 export interface ISubscriptionSchema {
   id: number;
   uuid: string;
   name: string;
   description: string;
+  features: string[];
   price: number | string;
   currency: string;
   duration: number;
   duration_type: SubscriptionDurationType;
   is_active: boolean;
+  config: ISubscriptionConfig;
   role_id: number;
   created_by: number | null;
   updated_by: number | null;
@@ -30,6 +36,7 @@ export type SubscriptionCreationSchema = Optional<
   | "currency"
   | "duration_type"
   | "is_active"
+  | "config"
   | "created_by"
   | "updated_by"
   | "deleted_by"
@@ -43,7 +50,7 @@ export interface ISubscriptionModel
 
 export type ISubscriptionCreatePayload = Pick<
   ISubscriptionSchema,
-  "name" | "description" | "duration" | "role_id"
+  "name" | "description" | "features" | "duration" | "role_id"
 > & {
   price: number;
 } & Partial<Pick<ISubscriptionSchema, "currency" | "duration_type" | "is_active" | "created_by">>;
@@ -51,7 +58,14 @@ export type ISubscriptionCreatePayload = Pick<
 export type ISubscriptionUpdatePayload = Partial<
   Pick<
     ISubscriptionSchema,
-    "name" | "description" | "currency" | "duration" | "duration_type" | "is_active" | "role_id"
+    | "name"
+    | "description"
+    | "features"
+    | "currency"
+    | "duration"
+    | "duration_type"
+    | "is_active"
+    | "role_id"
   >
 > & {
   price?: number;
@@ -65,6 +79,7 @@ export type ISubscriptionPublic = Pick<
   | "uuid"
   | "name"
   | "description"
+  | "features"
   | "currency"
   | "duration"
   | "duration_type"
@@ -74,4 +89,8 @@ export type ISubscriptionPublic = Pick<
   | "updated_at"
 > & {
   price: number;
+};
+
+export type ISubscriptionPricingPlan = ISubscriptionPublic & {
+  role: { name: string; slug: "user" | "business" };
 };

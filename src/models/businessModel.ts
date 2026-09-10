@@ -1,9 +1,9 @@
 import { sequelize } from "@/config/dbConfig";
-import type { ISubscriptionModel } from "@/types/subscriptionTypes";
+import type { IBusinessModel } from "@/types/businessTypes";
 import { DataTypes } from "sequelize";
 
-const subscriptionModel = sequelize.define<ISubscriptionModel>(
-  "SubscriptionModel",
+const businessModel = sequelize.define<IBusinessModel>(
+  "BusinessModel",
   {
     id: {
       type: DataTypes.INTEGER,
@@ -15,49 +15,38 @@ const subscriptionModel = sequelize.define<ISubscriptionModel>(
       defaultValue: DataTypes.UUIDV4,
     },
     name: {
-      type: DataTypes.STRING(100),
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+    },
+    slug: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+    },
+    country: {
+      type: DataTypes.STRING,
       allowNull: false,
     },
-    description: {
+    state: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    city: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    pincode: {
+      type: DataTypes.STRING(6),
+      allowNull: false,
+    },
+    address: {
       type: DataTypes.TEXT,
       allowNull: false,
     },
-    features: {
-      type: DataTypes.JSONB,
-      allowNull: false,
-      defaultValue: [],
-    },
-    config: {
-      type: DataTypes.JSONB,
+    address_2: {
+      type: DataTypes.TEXT,
       allowNull: true,
-      defaultValue: {},
-    },
-    price: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
-    },
-    currency: {
-      type: DataTypes.STRING(3),
-      allowNull: false,
-      defaultValue: "INR",
-    },
-    duration: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
-    duration_type: {
-      type: DataTypes.ENUM("MONTHLY", "YEARLY", "QUARTERLY"),
-      allowNull: false,
-      defaultValue: "MONTHLY",
-    },
-    is_active: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: true,
-    },
-    role_id: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
     },
     created_by: {
       type: DataTypes.INTEGER,
@@ -85,7 +74,7 @@ const subscriptionModel = sequelize.define<ISubscriptionModel>(
     },
   },
   {
-    tableName: "subscriptions",
+    tableName: "businesses",
     timestamps: true,
     paranoid: true,
     createdAt: "created_at",
@@ -93,18 +82,15 @@ const subscriptionModel = sequelize.define<ISubscriptionModel>(
     deletedAt: "deleted_at",
     indexes: [
       {
-        name: "subscriptions_uuid_unique",
         unique: true,
-        fields: ["uuid"],
+        fields: ["name"],
       },
       {
-        name: "subscriptions_name_role_unique",
         unique: true,
-        fields: ["name", "role_id"],
-        where: { deleted_at: null },
+        fields: ["slug"],
       },
     ],
   },
 );
 
-export { subscriptionModel };
+export { businessModel };

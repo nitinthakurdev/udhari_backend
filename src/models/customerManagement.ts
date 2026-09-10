@@ -1,9 +1,9 @@
 import { sequelize } from "@/config/dbConfig";
-import type { IOrganizationModel } from "@/types/organizationTypes";
+import type { ICustomerManagementModel } from "@/types/customerManagementTypes";
 import { DataTypes } from "sequelize";
 
-const organizationModel = sequelize.define<IOrganizationModel>(
-  "OrganizationModel",
+const customerManagementModel = sequelize.define<ICustomerManagementModel>(
+  "CustomerManagementModel",
   {
     id: {
       type: DataTypes.INTEGER,
@@ -14,39 +14,17 @@ const organizationModel = sequelize.define<IOrganizationModel>(
       type: DataTypes.STRING,
       defaultValue: DataTypes.UUIDV4,
     },
-    name: {
+    connect_user_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    business_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    role: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
-    },
-    slug: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-    },
-    country: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    state: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    city: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    pincode: {
-      type: DataTypes.STRING(6),
-      allowNull: false,
-    },
-    address: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-    },
-    address_2: {
-      type: DataTypes.TEXT,
-      allowNull: true,
     },
     created_by: {
       type: DataTypes.INTEGER,
@@ -74,25 +52,13 @@ const organizationModel = sequelize.define<IOrganizationModel>(
     },
   },
   {
-    tableName: "organizations",
+    tableName: "customer_management",
     timestamps: true,
     paranoid: true,
     createdAt: "created_at",
     updatedAt: "updated_at",
     deletedAt: "deleted_at",
-    indexes:[
-      {
-        unique:true,
-        fields:["name"]
-      },
-      {
-        unique: true,
-        fields: ["slug"]
-      }
-    ]
   },
 );
 
-
-
-export { organizationModel };
+export { customerManagementModel };

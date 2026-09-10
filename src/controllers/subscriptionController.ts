@@ -4,6 +4,7 @@ import {
   findSubscriptionByNameAndRole,
   findSubscriptionByUuid,
   findSubscriptions,
+  findPublicSubscriptions,
   updateSubscriptionByUuid,
 } from "@/services/subscriptionServices";
 import { findRoleById } from "@/services/roleServices";
@@ -24,6 +25,13 @@ import errorMessages from "../../errorMessages.json";
 import successMessages from "../../successMessages.json";
 
 const response = new HalSuccess();
+
+export const listPublicSubscriptions = AsyncHandler(async (_req, res): Promise<void> => {
+  const subscriptions = await findPublicSubscriptions();
+  res
+    .status(StatusCodes.OK)
+    .json(response.ok(subscriptions, { message: successMessages.SUBSCRIPTION.LIST }));
+});
 
 export const listSubscriptions = AsyncHandler(async (_req, res): Promise<void> => {
   const subscriptions = await findSubscriptions();

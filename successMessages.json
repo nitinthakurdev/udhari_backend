@@ -4,7 +4,11 @@
     "USER_SIGNED_IN": "User signed in successfully.",
     "CURRENT_USER_FETCHED": "Current user details fetched successfully.",
     "LOGOUT_USER": "User logout successfully",
-    "USER_LIST": "Users fetched successfully."
+    "USER_LIST": "Users fetched successfully.",
+    "EMAIL_VERIFIED": "Your email address has been verified successfully.",
+    "VERIFICATION_EMAIL_SENT": "If an unverified account matches, a new verification link has been sent.",
+    "PASSWORD_RESET_EMAIL_SENT": "If an account matches that email, a password reset link has been sent.",
+    "PASSWORD_RESET": "Your password has been reset successfully."
   },
   "ROLE": {
     "ROLE_CREATED": "Role created successfully.",
@@ -17,10 +21,11 @@
     "UPDATE": "Subscription updated successfully.",
     "DELETE": "Subscription deleted successfully."
   },
-  "ORGANIZATION": {
-    "CREATE": "Your organization, shop, or branch has been added successfully.",
-    "LIST": "Organizations and shops fetched successfully.",
-    "UPDATE": "Organization updated successfully.",
-    "SET_DEFAULT": "Default organization updated successfully."
+  "BUSINESS": {
+    "CREATE": "Your business, shop, or branch has been added successfully.",
+    "LIST": "Businesses and shops fetched successfully.",
+    "UPDATE": "Business updated successfully.",
+    "DELETE": "Business deleted successfully.",
+    "SET_DEFAULT": "Default business updated successfully."
   }
 }
