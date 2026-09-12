@@ -17,7 +17,6 @@ import { dbConnection } from "./config/dbConfig";
 import { StatusCodes } from "http-status-codes";
 import compressor from "compression";
 import cookieParser from "cookie-parser";
-import { config } from "./config/envConfig";
 
 // ---------- all associations import below here ---------
 
@@ -25,7 +24,7 @@ import "./association/userAssociation";
 import "./association/customerManagementAssociation";
 import "./association/transitionAssociation";
 
-const SERVER_PORT = config.NODE_ENV === "staging" ? 5003 : 5001;
+const SERVER_PORT = 5000;
 
 export const Start = (app: Application): void => {
   securityMiddleware(app);
