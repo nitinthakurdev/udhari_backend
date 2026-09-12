@@ -23,8 +23,10 @@ import cookieParser from "cookie-parser";
 import "./association/userAssociation";
 import "./association/customerManagementAssociation";
 import "./association/transitionAssociation";
+import { config } from "./config/envConfig";
 
-const SERVER_PORT = 5000;
+const SERVER_PORT = config.NODE_ENV === "development" ? 5001 : 5000;
+
 
 export const Start = (app: Application): void => {
   securityMiddleware(app);

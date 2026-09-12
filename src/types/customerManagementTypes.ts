@@ -45,3 +45,19 @@ export type ICustomerManagementUpdatePayload = Partial<ICustomerManagementPayloa
 export type ICustomerManagementUpdateData = ICustomerManagementUpdatePayload & {
   updated_by: number;
 };
+
+export interface IConnectCustomerPayload {
+  business_uuid: string;
+  user_id: number;
+}
+
+export interface ICustomerSearchResult {
+  uuid: string;
+  user_id: number;
+  first_name: string;
+  last_name: string | null;
+  email: string;
+  username: string;
+  phone: string;
+  dial_code: string | null;
+}

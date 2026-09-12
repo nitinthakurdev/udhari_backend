@@ -28,6 +28,14 @@ const uuidParams = z.strictObject({
 
 const createPayload = z.strictObject(fields, { error: messages.UNKNOWN_FIELDS });
 
+const connectCustomerPayload = z.strictObject(
+  {
+    business_uuid: z.uuid({ error: "Business identifier must be a valid UUID." }),
+    user_id: z.number().int().positive(),
+  },
+  { error: messages.UNKNOWN_FIELDS },
+);
+
 const updatePayload = z
   .strictObject(
     {
@@ -41,6 +49,11 @@ const updatePayload = z
 
 export const validateCreateCustomerManagement = validateRequest({
   body: createPayload,
+  errorMessage: messages.CREATE_VALIDATION_FAILED,
+});
+
+export const validateConnectCustomer = validateRequest({
+  body: connectCustomerPayload,
   errorMessage: messages.CREATE_VALIDATION_FAILED,
 });
 

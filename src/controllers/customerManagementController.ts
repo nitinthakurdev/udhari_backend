@@ -2,18 +2,23 @@ import {
   checkTheCustomerAlreadyAdded,
   createCustomerManagement as createCustomerManagementService,
   customerConnectionReferencesExist,
+  deleteCustomerConnectionByBusinessOwner,
   deleteCustomerManagementByUuid,
   findCustomerManagementByUuid,
+  getCustomerConnectionReferences,
   getConnectedUsers,
   getUsersConnectedToBusiness,
+  searchCustomersForBusiness,
   updateCustomerManagementByUuid,
 } from "@/services/customerManagementService";
 import type {
+  IConnectCustomerPayload,
   ICustomerManagementPayload,
   ICustomerManagementUpdatePayload,
 } from "@/types/customerManagementTypes";
 import {
   AsyncHandler,
+  BadRequestError,
   ConflictError,
   HalSuccess,
   NotFoundError,
@@ -53,6 +58,92 @@ export const listUsersConnectedToBusiness = AsyncHandler(async (req, res): Promi
   res
     .status(StatusCodes.OK)
     .json(response.ok(customers, { message: successMessages.CUSTOMER_MANAGEMENT.LIST }));
+});
+
+export const searchCustomers = AsyncHandler(async (req, res): Promise<void> => {
+  if (!req.currentUser) {
+    throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
+  }
+
+  const searchKey = typeof req.query["key"] === "string" ? req.query["key"].trim() : "";
+  if (!searchKey) {
+    throw new BadRequestError("Search key is required.");
+  }
+
+  const customers = await searchCustomersForBusiness(
+    searchKey,
+    req.currentUser.id,
+    req.params["uuid"] as string,
+  );
+
+  if (!customers) {
+    throw new NotFoundError(errorMessages.BUSINESS.NOT_FOUND);
+  }
+
+  res
+    .status(StatusCodes.OK)
+    .json(response.ok(customers, { message: successMessages.CUSTOMER_MANAGEMENT.LIST }));
+});
+
+export const connectCustomer = AsyncHandler(async (req, res): Promise<void> => {
+  if (!req.currentUser) {
+    throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
+  }
+
+  const data = req.body as IConnectCustomerPayload;
+  const references = await getCustomerConnectionReferences(
+    data.user_id,
+    data.business_uuid,
+    req.currentUser.id,
+  );
+
+  if (!references.user) {
+    throw new NotFoundError(errorMessages.CUSTOMER_MANAGEMENT.USER_NOT_FOUND);
+  }
+  if (!references.business) {
+    throw new NotFoundError(errorMessages.CUSTOMER_MANAGEMENT.BUSINESS_NOT_FOUND);
+  }
+
+  const existingCustomer = await checkTheCustomerAlreadyAdded(
+    req.currentUser.id,
+    references.business.id,
+    references.user.id,
+  );
+  if (existingCustomer) {
+    throw new ConflictError(errorMessages.CUSTOMER_MANAGEMENT.ALREADY_EXISTS);
+  }
+
+  const customer = await createCustomerManagementService({
+    connect_user_id: req.currentUser.id,
+    business_id: references.business.id,
+    role: "customer",
+    created_by: references.user.id,
+  });
+
+  res.status(StatusCodes.CREATED).json(
+    response.created(customer, {
+      message: successMessages.CUSTOMER_MANAGEMENT.CREATE,
+    }),
+  );
+});
+
+export const disconnectCustomer = AsyncHandler(async (req, res): Promise<void> => {
+  if (!req.currentUser) {
+    throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
+  }
+
+  const deleted = await deleteCustomerConnectionByBusinessOwner(
+    req.params["uuid"] as string,
+    req.currentUser.id,
+  );
+
+  if (!deleted) {
+    throw new NotFoundError(errorMessages.CUSTOMER_MANAGEMENT.NOT_FOUND);
+  }
+
+  res
+    .status(StatusCodes.OK)
+    .json(response.ok(null, { message: successMessages.CUSTOMER_MANAGEMENT.DELETE }));
 });
 
 export const createCustomerManagement = AsyncHandler(async (req, res): Promise<void> => {

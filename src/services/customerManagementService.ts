@@ -2,9 +2,11 @@ import { businessModel } from "@/models/businessModel";
 import { customerManagementModel } from "@/models/customerManagement";
 import { userModel } from "@/models/userModel";
 import type {
+  ICustomerSearchResult,
   ICustomerManagementCreateData,
   ICustomerManagementUpdateData,
 } from "@/types/customerManagementTypes";
+import { sequelize } from "@/config/dbConfig";
 import { Op } from "sequelize";
 
 const customerAttributes = [
@@ -116,6 +118,91 @@ export const getUsersConnectedToBusiness = async (
     include: customerIncludes,
     order: [["created_at", "DESC"]],
   });
+};
+
+export const searchCustomersForBusiness = async (
+  searchKey: string,
+  businessOwnerId: number,
+  businessUuid: string,
+): Promise<ICustomerSearchResult[] | undefined> => {
+  const business = await businessModel.findOne({
+    where: { uuid: businessUuid, created_by: businessOwnerId },
+    attributes: ["id"],
+  });
+
+  if (!business) return undefined;
+
+  const escapedSearchKey = searchKey.replace(/[\\%_]/g, "\\$&");
+  const nameSearch = sequelize.where(
+    sequelize.fn(
+      "concat",
+      sequelize.col("first_name"),
+      " ",
+      sequelize.fn("coalesce", sequelize.col("last_name"), ""),
+    ),
+    { [Op.iLike]: `%${escapedSearchKey}%` },
+  );
+
+  const users = await userModel.findAll({
+    where: {
+      id: { [Op.ne]: businessOwnerId },
+      [Op.or]: [
+        nameSearch,
+        { username: { [Op.iLike]: `%${escapedSearchKey}%` } },
+        { email: { [Op.iLike]: `%${escapedSearchKey}%` } },
+        { phone: { [Op.iLike]: `%${escapedSearchKey}%` } },
+      ],
+    },
+    attributes: ["id", ...userAttributes],
+    order: [
+      ["first_name", "ASC"],
+      ["last_name", "ASC"],
+    ],
+    limit: 10,
+    raw: true,
+  });
+
+  return users.map((user) => ({
+    uuid: user.uuid,
+    user_id: user.id,
+    first_name: user.first_name,
+    last_name: user.last_name,
+    email: user.email,
+    username: user.username,
+    phone: user.phone,
+    dial_code: user.dial_code,
+  }));
+};
+
+export const getCustomerConnectionReferences = async (
+  userId: number,
+  businessUuid: string,
+  businessOwnerId: number,
+) => {
+  const [user, business] = await Promise.all([
+    userModel.findByPk(userId, { attributes: ["id"] }),
+    businessModel.findOne({
+      where: { uuid: businessUuid, created_by: businessOwnerId },
+      attributes: ["id"],
+    }),
+  ]);
+
+  return { user, business };
+};
+
+export const deleteCustomerConnectionByBusinessOwner = async (
+  uuid: string,
+  businessOwnerId: number,
+): Promise<boolean> => {
+  const customer = await customerManagementModel.findOne({
+    where: { uuid, connect_user_id: businessOwnerId },
+  });
+
+  if (!customer) return false;
+
+  await customer.update({ deleted_by: businessOwnerId });
+  await customer.destroy();
+  return true;
 };
 
 export const updateCustomerManagementByUuid = async (
