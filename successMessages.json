@@ -8,7 +8,8 @@
     "EMAIL_VERIFIED": "Your email address has been verified successfully.",
     "VERIFICATION_EMAIL_SENT": "If an unverified account matches, a new verification link has been sent.",
     "PASSWORD_RESET_EMAIL_SENT": "If an account matches that email, a password reset link has been sent.",
-    "PASSWORD_RESET": "Your password has been reset successfully."
+    "PASSWORD_RESET": "Your password has been reset successfully.",
+    "PASSWORD_CHANGED": "Your password has been changed successfully."
   },
   "ROLE": {
     "ROLE_CREATED": "Role created successfully.",

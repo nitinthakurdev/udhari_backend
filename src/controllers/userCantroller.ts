@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/require-await */
 import {
+  changePasswordById,
   createUser as createUserService,
   findUserByEmail,
   findUserByEmailOrUsername,
@@ -15,6 +16,7 @@ import {
 import { sendEmail } from "@/services/emailService";
 import { findRoleBySlag } from "@/services/roleServices";
 import type {
+  IChangePasswordPayload,
   IForgotPasswordPayload,
   IResendVerificationPayload,
   IResetPasswordPayload,
@@ -41,6 +43,12 @@ import { sequelize } from "@/config/dbConfig";
 import { usernameModifier } from "@/utils/slugMaker";
 
 const response = new HalSuccess();
+
+/*
+================================================================
+********* cookies handler in production and staging ***********
+================================================================
+ */
 const isDeployedEnvironment = ["staging", "production"].includes(config.NODE_ENV ?? "");
 const sessionCookieOptions: CookieOptions = {
   httpOnly: true,
@@ -50,6 +58,11 @@ const sessionCookieOptions: CookieOptions = {
   ...(config.COOKIE_DOMAIN ? { domain: config.COOKIE_DOMAIN } : {}),
 };
 
+/*
+================================================================
+********* handle client url to send verification link ***********
+================================================================
+ */
 const createFrontendUrl = (pathname: string, token: string): string => {
   if (!config.CLIENT_URL) {
     throw new InternalServerError(errorMessages.USER.AUTH_CONFIGURATION_ERROR);
@@ -67,6 +80,11 @@ const createFrontendUrl = (pathname: string, token: string): string => {
 
 const hashToken = (token: string): string => createHash("sha256").update(token).digest("hex");
 
+/*
+================================================================
+********* check existence and return a meaning full message ***********
+================================================================
+ */
 const assertUserFieldsAreUnique = (conflicts: IUserUniqueField[]): void => {
   if (conflicts.length === 0) return;
 
@@ -85,6 +103,11 @@ const assertUserFieldsAreUnique = (conflicts: IUserUniqueField[]): void => {
   throw new BadRequestError(message, details);
 };
 
+/*
+================================================================
+********* session handler is start here ***********
+================================================================
+ */
 const createAuthenticatedSession = (
   res: Response,
   user: NonNullable<Awaited<ReturnType<typeof findUserByIdentifier>>>,
@@ -195,6 +218,11 @@ export const signup = AsyncHandler(async (req, res): Promise<void> => {
   );
 });
 
+/*
+ ===============================================================================================
+ ************************** email verification code here ************************************
+ ===============================================================================================
+ */
 export const verifyEmail = AsyncHandler(async (req, res): Promise<void> => {
   const token = typeof req.query["token"] === "string" ? req.query["token"] : "";
 
@@ -202,19 +230,9 @@ export const verifyEmail = AsyncHandler(async (req, res): Promise<void> => {
     throw new BadRequestError(errorMessages.USER.VERIFICATION_TOKEN_REQUIRED);
   }
 
-  const pendingUser = await findUserByVerificationToken(token);
-  if (!pendingUser) {
-    throw new BadRequestError(errorMessages.USER.VERIFICATION_TOKEN_INVALID);
-  }
-
-  const isVerified = await verifyUserEmailByToken(token);
-  if (!isVerified) {
-    throw new BadRequestError(errorMessages.USER.VERIFICATION_TOKEN_INVALID);
-  }
-
-  const verifiedUser = await findUserByIdentifier(pendingUser.email);
+  const verifiedUser = await verifyUserEmailByToken(token);
   if (!verifiedUser) {
-    throw new InternalServerError(errorMessages.AUTHORIZATION.USER_NOT_FOUND);
+    throw new BadRequestError(errorMessages.USER.VERIFICATION_TOKEN_INVALID);
   }
 
   const session = createAuthenticatedSession(res, verifiedUser);
@@ -226,6 +244,11 @@ export const verifyEmail = AsyncHandler(async (req, res): Promise<void> => {
   );
 });
 
+/*
+ ===============================================================================================
+ ************************** resend verification email function ************************************
+ ===============================================================================================
+ */
 export const resendVerificationEmail = AsyncHandler(async (req, res): Promise<void> => {
   const { email, token } = req.body as IResendVerificationPayload;
   let user = token ? await findUserByVerificationToken(token) : undefined;
@@ -269,6 +292,12 @@ export const resendVerificationEmail = AsyncHandler(async (req, res): Promise<vo
   );
 });
 
+/*
+ ===============================================================================================
+ ************************** forget password function ************************************
+ ===============================================================================================
+ */
+
 export const forgotPassword = AsyncHandler(async (req, res): Promise<void> => {
   const { email } = req.body as IForgotPasswordPayload;
   const user = await findUserByEmail(email);
@@ -303,6 +332,12 @@ export const forgotPassword = AsyncHandler(async (req, res): Promise<void> => {
   );
 });
 
+/*
+ ===============================================================================================
+ ************************** reset password function ************************************
+ ===============================================================================================
+ */
+
 export const resetPassword = AsyncHandler(async (req, res): Promise<void> => {
   const { token, password } = req.body as IResetPasswordPayload;
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -321,6 +356,58 @@ export const resetPassword = AsyncHandler(async (req, res): Promise<void> => {
         message: successMessages.USER.PASSWORD_RESET,
       }),
     );
+});
+
+/*
+ ===============================================================================================
+ ************************** change password code starts here ***********************************
+ ===============================================================================================
+ */
+export const changePassword = AsyncHandler(async (req, res): Promise<void> => {
+  const currentUser = req.currentUser;
+  if (!currentUser) {
+    throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
+  }
+
+  const { current_password, new_password } = req.body as IChangePasswordPayload;
+  const user = await findUserByIdentifier(currentUser.username);
+
+  if (!user?.password) {
+    throw new BadRequestError(errorMessages.USER.CURRENT_PASSWORD_INCORRECT);
+  }
+
+  const isCurrentPasswordValid = await bcrypt.compare(current_password, user.password);
+  if (!isCurrentPasswordValid) {
+    throw new BadRequestError(errorMessages.USER.CURRENT_PASSWORD_INCORRECT, [
+      {
+        field: "current_password",
+        message: errorMessages.USER.CURRENT_PASSWORD_INCORRECT,
+      },
+    ]);
+  }
+
+  const isSamePassword = await bcrypt.compare(new_password, user.password);
+  if (isSamePassword) {
+    throw new BadRequestError(errorMessages.USER.NEW_PASSWORD_MUST_DIFFER, [
+      {
+        field: "new_password",
+        message: errorMessages.USER.NEW_PASSWORD_MUST_DIFFER,
+      },
+    ]);
+  }
+
+  const hashedPassword = await bcrypt.hash(new_password, 10);
+  const isChanged = await changePasswordById(currentUser.id, hashedPassword);
+
+  if (!isChanged) {
+    throw new InternalServerError(errorMessages.USER.PASSWORD_CHANGE_FAILED);
+  }
+
+  res.status(StatusCodes.OK).json(
+    response.ok(null, {
+      message: successMessages.USER.PASSWORD_CHANGED,
+    }),
+  );
 });
 
 /*
@@ -359,7 +446,7 @@ export const signin = AsyncHandler(async (req, res): Promise<void> => {
 
 /*
  ===============================================================================================
- ************************** sign up api code start here ***************************************
+ ************************** logged in user details api ***************************************
  ===============================================================================================
  */
 export const loginUserDetails = AsyncHandler(async (req, res): Promise<void> => {
@@ -381,7 +468,7 @@ export const loginUserDetails = AsyncHandler(async (req, res): Promise<void> => 
 
 /*
  ===============================================================================================
- ************************** sign up api code start here ***************************************
+ ************************** logout api ***************************************
  ===============================================================================================
  */
 export const logoutUser = AsyncHandler(async (req, res): Promise<void> => {

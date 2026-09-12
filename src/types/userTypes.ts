@@ -113,6 +113,11 @@ export interface IResetPasswordPayload {
   password: string;
 }
 
+export interface IChangePasswordPayload {
+  current_password: string;
+  new_password: string;
+}
+
 export interface IResendVerificationPayload {
   email?: string;
   token?: string;

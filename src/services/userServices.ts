@@ -73,8 +73,8 @@ export const createUser = async (
   return toPublicUser(result.dataValues);
 };
 
-export const verifyUserEmailByToken = async (token: string): Promise<boolean> => {
-  const [affectedCount] = await userModel.update(
+export const verifyUserEmailByToken = async (token: string): Promise<IUserSchema | undefined> => {
+  const [affectedCount, updatedUsers] = await userModel.update(
     {
       is_email_verified: true,
       verification_token: null,
@@ -86,10 +86,13 @@ export const verifyUserEmailByToken = async (token: string): Promise<boolean> =>
         verification_token_expiry: { [Op.gt]: new Date() },
         is_email_verified: false,
       },
+      returning: true,
     },
   );
 
-  return affectedCount === 1;
+  if (affectedCount !== 1) return undefined;
+
+  return updatedUsers[0]?.dataValues;
 };
 
 export const findUserByVerificationToken = async (
@@ -144,6 +147,24 @@ export const resetPasswordByToken = async (
         password_reset_token_expiry: { [Op.gt]: new Date() },
       },
     },
+  );
+
+  return affectedCount === 1;
+};
+
+/*
+==============================================================================
+***************** change authenticated user password *************************
+==============================================================================
+ */
+export const changePasswordById = async (id: number, password: string): Promise<boolean> => {
+  const [affectedCount] = await userModel.update(
+    {
+      password,
+      password_reset_token: null,
+      password_reset_token_expiry: null,
+    },
+    { where: { id } },
   );
 
   return affectedCount === 1;

@@ -140,3 +140,19 @@ export const validateResetPassword = validateRequest({
   }),
   errorMessage: userValidationMessages.RESET_PASSWORD_VALIDATION_FAILED,
 });
+
+export const validateChangePassword = validateRequest({
+  body: z
+    .strictObject({
+      current_password: z
+        .string({ error: userValidationMessages.CURRENT_PASSWORD_REQUIRED })
+        .min(1, { error: userValidationMessages.CURRENT_PASSWORD_REQUIRED })
+        .max(72, { error: userValidationMessages.PASSWORD_MAX_LENGTH }),
+      new_password: strongPasswordValidation,
+    })
+    .refine((data) => data.current_password !== data.new_password, {
+      error: userValidationMessages.NEW_PASSWORD_MUST_DIFFER,
+      path: ["new_password"],
+    }),
+  errorMessage: userValidationMessages.CHANGE_PASSWORD_VALIDATION_FAILED,
+});

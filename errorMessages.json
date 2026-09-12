@@ -20,7 +20,10 @@
     "VERIFICATION_TOKEN_REQUIRED": "Email verification token is required.",
     "VERIFICATION_TOKEN_INVALID": "This email verification link is invalid or has expired.",
     "EMAIL_SEND_FAILED": "We could not send the email. Please try again.",
-    "RESET_TOKEN_INVALID": "This password reset link is invalid or has expired."
+    "RESET_TOKEN_INVALID": "This password reset link is invalid or has expired.",
+    "CURRENT_PASSWORD_INCORRECT": "Your current password is incorrect.",
+    "NEW_PASSWORD_MUST_DIFFER": "Your new password must be different from your current password.",
+    "PASSWORD_CHANGE_FAILED": "We could not change your password. Please try again."
   },
   "ROLE": {
     "ALREADY_EXIST": "A role with this name or slag already exists."
