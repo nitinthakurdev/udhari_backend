@@ -26,6 +26,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY package*.json ./
+COPY errorMessages.json ./
+COPY successMessages.json ./
+COPY validationMessage.json ./
 
 RUN npm ci --omit=dev
 
