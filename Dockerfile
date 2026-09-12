@@ -32,11 +32,11 @@ COPY validationMessage.json ./
 
 RUN npm ci --omit=dev
 
+COPY .sequelizerc ./
+COPY sequelize ./sequelize
 COPY --from=builder /app/dist ./dist
 
 EXPOSE 5000
 
 CMD ["node", "dist/index.js"]
-
-
 

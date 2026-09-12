@@ -41,7 +41,6 @@
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.12.0",
     "prettier": "^3.9.6",
-    "sequelize-cli": "^6.6.5",
     "tsc-alias": "^1.9.4",
     "tsx": "^4.23.13",
     "typescript": "^6.0.3",
@@ -64,6 +63,7 @@
     "pg": "^8.23.0",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.8",
+    "sequelize-cli": "^6.6.5",
     "zod": "^4.5.4"
   }
 }
