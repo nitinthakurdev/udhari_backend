@@ -23,6 +23,7 @@ import { config } from "./config/envConfig";
 
 import "./association/userAssociation";
 import "./association/customerManagementAssociation";
+import "./association/transitionAssociation";
 
 const SERVER_PORT = config.NODE_ENV === "staging" ? 5003 : 5001;
 

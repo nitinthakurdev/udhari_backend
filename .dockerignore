@@ -1,0 +1,8 @@
+.env
+.env.*
+.gitignore
+.prettierignore
+.prettierrc.json
+eslint.config.mjs
+.github
+dist

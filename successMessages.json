@@ -28,5 +28,25 @@
     "UPDATE": "Business updated successfully.",
     "DELETE": "Business deleted successfully.",
     "SET_DEFAULT": "Default business updated successfully."
+  },
+  "CUSTOMER_MANAGEMENT": {
+    "CREATE": "Customer connection created successfully.",
+    "LIST": "Customer connections fetched successfully.",
+    "UPDATE": "Customer connection updated successfully.",
+    "DELETE": "Customer connection deleted successfully."
+  },
+  "TRANSITION": {
+    "CREATE": "Transition created successfully.",
+    "LIST": "Transitions fetched successfully.",
+    "GET": "Transition fetched successfully.",
+    "UPDATE": "Transition updated successfully.",
+    "DELETE": "Transition deleted successfully."
+  },
+  "UNIT": {
+    "CREATE": "Unit created successfully.",
+    "LIST": "Units fetched successfully.",
+    "GET": "Unit fetched successfully.",
+    "UPDATE": "Unit updated successfully.",
+    "DELETE": "Unit deleted successfully."
   }
 }

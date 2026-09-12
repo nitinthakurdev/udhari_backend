@@ -13,3 +13,15 @@ export const requireAdmin = (req: Request, _res: Response, next: NextFunction): 
 
   next();
 };
+
+export const requireBusinessOrAdmin = (req: Request, _res: Response, next: NextFunction): void => {
+  if (!req.currentUser) {
+    throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
+  }
+
+  if (!["business", "admin"].includes(req.currentUser.user_role?.slug ?? "")) {
+    throw new ForbiddenError(errorMessages.AUTHORIZATION.ACCESS_DENIED);
+  }
+
+  next();
+};

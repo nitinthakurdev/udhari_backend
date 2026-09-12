@@ -37,5 +37,26 @@
     "EXIST": "A business with this name already exists. Please choose a different name and try again.",
     "NOT_FOUND": "Business not found or you do not have permission to update it.",
     "DEFAULT_NOT_FOUND": "Business not found or you do not have permission to set it as default."
+  },
+  "CUSTOMER_MANAGEMENT": {
+    "ALREADY_EXISTS": "This user is already connected to the selected business.",
+    "NOT_FOUND": "Customer connection not found or you do not have permission to access it.",
+    "USER_NOT_FOUND": "The user to connect was not found.",
+    "BUSINESS_NOT_FOUND": "Business not found or you do not have permission to use it."
+  },
+  "TRANSITION": {
+    "NOT_FOUND": "Transition not found or you do not have permission to access it.",
+    "USER_NOT_FOUND": "The selected user was not found.",
+    "BUSINESS_NOT_FOUND": "The selected business was not found.",
+    "CONNECTION_NOT_FOUND": "The user is not connected to the selected business.",
+    "UNIT_NOT_FOUND": "The selected unit is not available for this business.",
+    "ACCESS_DENIED": "Only the connected user or business owner can access this transition.",
+    "USER_APPROVAL_DENIED": "Only the connected user can change user approval.",
+    "BUSINESS_APPROVAL_DENIED": "Only the business owner can change business approval."
+  },
+  "UNIT": {
+    "ALREADY_EXISTS": "A unit with this name already exists.",
+    "NOT_FOUND": "Unit not found or you do not have permission to manage it.",
+    "BUSINESS_NOT_FOUND": "Business not found or you do not have permission to use its units."
   }
 }

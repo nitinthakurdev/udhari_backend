@@ -62,3 +62,8 @@ export type IBusinessPublic = Pick<
   | "created_at"
   | "updated_at"
 >;
+
+export type IBusinessSearchResult = Pick<IBusinessSchema, "uuid" | "name" | "slug"> & {
+  business_id: number;
+  connect_user_id: number;
+};

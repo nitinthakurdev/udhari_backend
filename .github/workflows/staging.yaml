@@ -17,20 +17,16 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-           export NVM_DIR="/root/.nvm"
-           source "$NVM_DIR/nvm.sh"
+            set -e
 
-            node -v
-            npm -v
+            cd /root/udhari/staging/udhari_backend
 
-            cd udhari/staging/udhari_backend
+            git fetch origin staging
+            git reset --hard origin/staging
 
-           rm -rf node_modules dist 
+            cd /root/udhari
 
-            git pull origin staging
+            docker compose up -d --build --force-recreate udhari-backend-staging
 
-            npm ci
-
-            npm run build
-
-            npm run restart:stg
+            docker compose ps
+            docker ps

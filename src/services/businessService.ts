@@ -4,6 +4,7 @@ import type {
   IBusinessCreatePayload,
   IBusinessPublic,
   IBusinessSchema,
+  IBusinessSearchResult,
   IBusinessUpdateData,
 } from "@/types/businessTypes";
 import { Op } from "sequelize";
@@ -60,6 +61,48 @@ export const findBusinessesByCreator = async (createdBy: number): Promise<IBusin
   });
 
   return results;
+};
+
+/*
+==============================================================================
+********************** search businesses ************************************
+==============================================================================
+ */
+export const searchBusinessesByNameOrSlug = async (
+  searchKey: string,
+  currentUserId: number,
+): Promise<IBusinessSearchResult[]> => {
+  const escapedSearchKey = searchKey.replace(/[\\%_]/g, "\\$&");
+
+  const businesses = await businessModel.findAll({
+    where: {
+      created_by: { [Op.and]: [{ [Op.ne]: currentUserId }, { [Op.not]: null }] },
+      [Op.or]: [
+        { name: { [Op.iLike]: `%${escapedSearchKey}%` } },
+        { slug: { [Op.iLike]: `%${escapedSearchKey}%` } },
+      ],
+    },
+    attributes: ["id", "uuid", "name", "slug", "created_by"],
+    order: [["name", "ASC"]],
+    limit: 10,
+    raw: true,
+  });
+
+  return businesses.map((business) => {
+    const ownerId = business.created_by;
+
+    if (ownerId === null) {
+      throw new Error("A searchable business must have an owner.");
+    }
+
+    return {
+      uuid: business.uuid,
+      name: business.name,
+      slug: business.slug,
+      business_id: business.id,
+      connect_user_id: ownerId,
+    };
+  });
 };
 
 /*

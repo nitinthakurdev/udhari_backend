@@ -3,6 +3,7 @@ import {
   deleteBusinessByUuid,
   findBusinessesByCreator,
   findBusinessWithNameAndSlug,
+  searchBusinessesByNameOrSlug,
   setDefaultBusinessByUuid,
   updateBusinessByUuid,
 } from "@/services/businessService";
@@ -42,6 +43,27 @@ export const listBusinesses = AsyncHandler(async (req, res): Promise<void> => {
   }
 
   const result = await findBusinessesByCreator(req.currentUser.id);
+
+  res.status(StatusCodes.OK).json(response.ok(result, { message: successMessages.BUSINESS.LIST }));
+});
+
+/*
+=============================================================================
+************************ search businesses ********************************
+=============================================================================
+ */
+export const searchBusinesses = AsyncHandler(async (req, res): Promise<void> => {
+  if (!req.currentUser) {
+    throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
+  }
+
+  const searchKey = typeof req.query["key"] === "string" ? req.query["key"].trim() : "";
+
+  if (!searchKey) {
+    throw new BadRequestError("Search key is required.");
+  }
+
+  const result = await searchBusinessesByNameOrSlug(searchKey, req.currentUser.id);
 
   res.status(StatusCodes.OK).json(response.ok(result, { message: successMessages.BUSINESS.LIST }));
 });
