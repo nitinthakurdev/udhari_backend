@@ -78,9 +78,20 @@ export const checkTransitionAccess = async (
     user && businessOwnerId
       ? await customerManagementModel.findOne({
           where: {
-            created_by: userId,
-            connect_user_id: businessOwnerId,
             business_id: businessId,
+            request_status: "approved",
+            [Op.or]: [
+              {
+                created_by: userId,
+                connect_user_id: businessOwnerId,
+                role: "customer",
+              },
+              {
+                created_by: businessOwnerId,
+                connect_user_id: userId,
+                role: "business",
+              },
+            ],
           },
           attributes: ["id"],
         })

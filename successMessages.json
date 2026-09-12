@@ -31,6 +31,8 @@
   },
   "CUSTOMER_MANAGEMENT": {
     "CREATE": "Customer connection created successfully.",
+    "REQUEST_SENT": "Connection request sent successfully.",
+    "REQUEST_UPDATED": "Connection request updated successfully.",
     "LIST": "Customer connections fetched successfully.",
     "UPDATE": "Customer connection updated successfully.",
     "DELETE": "Customer connection deleted successfully."

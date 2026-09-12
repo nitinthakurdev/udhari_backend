@@ -41,6 +41,7 @@
   "CUSTOMER_MANAGEMENT": {
     "ALREADY_EXISTS": "This user is already connected to the selected business.",
     "NOT_FOUND": "Customer connection not found or you do not have permission to access it.",
+    "REQUEST_NOT_FOUND": "Connection request not found or it has already been handled.",
     "USER_NOT_FOUND": "The user to connect was not found.",
     "BUSINESS_NOT_FOUND": "Business not found or you do not have permission to use it."
   },

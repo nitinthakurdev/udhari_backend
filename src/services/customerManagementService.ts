@@ -2,9 +2,10 @@ import { businessModel } from "@/models/businessModel";
 import { customerManagementModel } from "@/models/customerManagement";
 import { userModel } from "@/models/userModel";
 import type {
-  ICustomerSearchResult,
   ICustomerManagementCreateData,
   ICustomerManagementUpdateData,
+  ICustomerSearchResult,
+  CustomerRequestStatus,
 } from "@/types/customerManagementTypes";
 import { sequelize } from "@/config/dbConfig";
 import { Op } from "sequelize";
@@ -12,6 +13,7 @@ import { Op } from "sequelize";
 const customerAttributes = [
   "uuid",
   "connect_user_id",
+  "request_status",
   "business_id",
   "created_by",
   "role",
@@ -43,7 +45,7 @@ const customerIncludes = [
   {
     model: businessModel,
     as: "business",
-    attributes: ["uuid", "name", "slug"],
+    attributes: ["uuid", "name", "slug", "created_by"],
   },
 ];
 
@@ -67,12 +69,14 @@ export const checkTheCustomerAlreadyAdded = async (
 ) =>
   customerManagementModel.findOne({
     where: {
-      connect_user_id: connectUserId,
       business_id: businessId,
-      created_by: createdBy,
+      [Op.or]: [
+        { connect_user_id: connectUserId, created_by: createdBy },
+        { connect_user_id: createdBy, created_by: connectUserId },
+      ],
       ...(excludeUuid ? { uuid: { [Op.ne]: excludeUuid } } : {}),
     },
-    attributes: ["uuid"],
+    attributes: ["uuid", "request_status"],
   });
 
 export const customerConnectionReferencesExist = async (
@@ -92,7 +96,13 @@ export const customerConnectionReferencesExist = async (
 
 export const getConnectedUsers = async (createdBy: number) =>
   customerManagementModel.findAll({
-    where: { created_by: createdBy },
+    where: {
+      request_status: "approved",
+      [Op.or]: [
+        { created_by: createdBy, role: "customer" },
+        { connect_user_id: createdBy, role: "business" },
+      ],
+    },
     attributes: customerAttributes,
     include: customerIncludes,
     order: [["created_at", "DESC"]],
@@ -111,8 +121,12 @@ export const getUsersConnectedToBusiness = async (
 
   return customerManagementModel.findAll({
     where: {
-      connect_user_id: businessOwnerId,
       business_id: business.id,
+      request_status: "approved",
+      [Op.or]: [
+        { connect_user_id: businessOwnerId, role: "customer" },
+        { created_by: businessOwnerId, role: "business" },
+      ],
     },
     attributes: customerAttributes,
     include: customerIncludes,
@@ -195,14 +209,59 @@ export const deleteCustomerConnectionByBusinessOwner = async (
   businessOwnerId: number,
 ): Promise<boolean> => {
   const customer = await customerManagementModel.findOne({
-    where: { uuid, connect_user_id: businessOwnerId },
+    where: { uuid },
   });
 
   if (!customer) return false;
 
+  const business = await businessModel.findOne({
+    where: { id: customer.business_id, created_by: businessOwnerId },
+    attributes: ["id"],
+  });
+  if (!business) return false;
+
   await customer.update({ deleted_by: businessOwnerId });
   await customer.destroy();
   return true;
+};
+
+export const getConnectionRequests = async (userId: number) => {
+  const where = { request_status: "pending" as const };
+  const [incoming, outgoing] = await Promise.all([
+    customerManagementModel.findAll({
+      where: { ...where, connect_user_id: userId },
+      attributes: customerAttributes,
+      include: customerIncludes,
+      order: [["created_at", "DESC"]],
+    }),
+    customerManagementModel.findAll({
+      where: { ...where, created_by: userId },
+      attributes: customerAttributes,
+      include: customerIncludes,
+      order: [["created_at", "DESC"]],
+    }),
+  ]);
+
+  return { incoming, outgoing };
+};
+
+export const respondToConnectionRequest = async (
+  uuid: string,
+  userId: number,
+  requestStatus: Exclude<CustomerRequestStatus, "pending">,
+) => {
+  const request = await customerManagementModel.findOne({
+    where: { uuid, connect_user_id: userId, request_status: "pending" },
+  });
+
+  if (!request) return undefined;
+
+  await request.update({ request_status: requestStatus, updated_by: userId });
+  return customerManagementModel.findOne({
+    where: { uuid },
+    attributes: customerAttributes,
+    include: customerIncludes,
+  });
 };
 
 export const updateCustomerManagementByUuid = async (
@@ -225,7 +284,10 @@ export const deleteCustomerManagementByUuid = async (
   createdBy: number,
 ): Promise<boolean> => {
   const customer = await customerManagementModel.findOne({
-    where: { uuid, created_by: createdBy },
+    where: {
+      uuid,
+      [Op.or]: [{ created_by: createdBy }, { connect_user_id: createdBy }],
+    },
   });
 
   if (!customer) return false;

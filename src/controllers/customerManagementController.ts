@@ -5,14 +5,17 @@ import {
   deleteCustomerConnectionByBusinessOwner,
   deleteCustomerManagementByUuid,
   findCustomerManagementByUuid,
+  getConnectionRequests,
   getCustomerConnectionReferences,
   getConnectedUsers,
   getUsersConnectedToBusiness,
   searchCustomersForBusiness,
+  respondToConnectionRequest,
   updateCustomerManagementByUuid,
 } from "@/services/customerManagementService";
 import type {
   IConnectCustomerPayload,
+  IConnectionRequestResponsePayload,
   ICustomerManagementPayload,
   ICustomerManagementUpdatePayload,
 } from "@/types/customerManagementTypes";
@@ -105,24 +108,61 @@ export const connectCustomer = AsyncHandler(async (req, res): Promise<void> => {
   }
 
   const existingCustomer = await checkTheCustomerAlreadyAdded(
-    req.currentUser.id,
-    references.business.id,
     references.user.id,
+    references.business.id,
+    req.currentUser.id,
   );
   if (existingCustomer) {
-    throw new ConflictError(errorMessages.CUSTOMER_MANAGEMENT.ALREADY_EXISTS);
+    if (existingCustomer.request_status !== "rejected") {
+      throw new ConflictError(errorMessages.CUSTOMER_MANAGEMENT.ALREADY_EXISTS);
+    }
+    await existingCustomer.destroy();
   }
 
   const customer = await createCustomerManagementService({
-    connect_user_id: req.currentUser.id,
+    connect_user_id: references.user.id,
     business_id: references.business.id,
-    role: "customer",
-    created_by: references.user.id,
+    role: "business",
+    created_by: req.currentUser.id,
   });
 
   res.status(StatusCodes.CREATED).json(
     response.created(customer, {
-      message: successMessages.CUSTOMER_MANAGEMENT.CREATE,
+      message: successMessages.CUSTOMER_MANAGEMENT.REQUEST_SENT,
+    }),
+  );
+});
+
+export const listConnectionRequests = AsyncHandler(async (req, res): Promise<void> => {
+  if (!req.currentUser) {
+    throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
+  }
+
+  const requests = await getConnectionRequests(req.currentUser.id);
+  res
+    .status(StatusCodes.OK)
+    .json(response.ok(requests, { message: successMessages.CUSTOMER_MANAGEMENT.LIST }));
+});
+
+export const respondToRequest = AsyncHandler(async (req, res): Promise<void> => {
+  if (!req.currentUser) {
+    throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
+  }
+
+  const data = req.body as IConnectionRequestResponsePayload;
+  const request = await respondToConnectionRequest(
+    req.params["uuid"] as string,
+    req.currentUser.id,
+    data.request_status,
+  );
+
+  if (!request) {
+    throw new NotFoundError(errorMessages.CUSTOMER_MANAGEMENT.REQUEST_NOT_FOUND);
+  }
+
+  res.status(StatusCodes.OK).json(
+    response.ok(request, {
+      message: successMessages.CUSTOMER_MANAGEMENT.REQUEST_UPDATED,
     }),
   );
 });
@@ -170,17 +210,21 @@ export const createCustomerManagement = AsyncHandler(async (req, res): Promise<v
     req.currentUser.id,
   );
   if (existingCustomer) {
-    throw new ConflictError(errorMessages.CUSTOMER_MANAGEMENT.ALREADY_EXISTS);
+    if (existingCustomer.request_status !== "rejected") {
+      throw new ConflictError(errorMessages.CUSTOMER_MANAGEMENT.ALREADY_EXISTS);
+    }
+    await existingCustomer.destroy();
   }
 
   const customer = await createCustomerManagementService({
     ...data,
+    role: "customer",
     created_by: req.currentUser.id,
   });
 
   res.status(StatusCodes.CREATED).json(
     response.created(customer, {
-      message: successMessages.CUSTOMER_MANAGEMENT.CREATE,
+      message: successMessages.CUSTOMER_MANAGEMENT.REQUEST_SENT,
     }),
   );
 });

@@ -18,6 +18,11 @@ const customerManagementModel = sequelize.define<ICustomerManagementModel>(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    request_status: {
+      type: DataTypes.ENUM("pending", "approved", "rejected"),
+      allowNull: false,
+      defaultValue: "pending",
+    },
     business_id: {
       type: DataTypes.INTEGER,
       allowNull: false,

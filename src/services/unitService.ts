@@ -102,7 +102,22 @@ export const findAccessibleBusinessOwnerId = async (
   if (roleSlug !== "user") return undefined;
 
   const connection = await customerManagementModel.findOne({
-    where: { created_by: currentUserId, business_id: business.id },
+    where: {
+      business_id: business.id,
+      request_status: "approved",
+      [Op.or]: [
+        {
+          created_by: currentUserId,
+          connect_user_id: business.created_by,
+          role: "customer",
+        },
+        {
+          created_by: business.created_by,
+          connect_user_id: currentUserId,
+          role: "business",
+        },
+      ],
+    },
     attributes: ["id"],
   });
 

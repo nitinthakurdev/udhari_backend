@@ -1,9 +1,12 @@
 import type { Model, Optional } from "sequelize";
 
+export type CustomerRequestStatus = "pending" | "approved" | "rejected";
+
 export interface ICustomerManagementSchema {
   id: number;
   uuid: string;
   connect_user_id: number;
+  request_status: CustomerRequestStatus;
   business_id: number;
   role: string;
   updated_by: number | null;
@@ -18,6 +21,7 @@ export type CustomerManagementCreationSchema = Optional<
   ICustomerManagementSchema,
   | "id"
   | "uuid"
+  | "request_status"
   | "updated_by"
   | "deleted_by"
   | "created_by"
@@ -49,6 +53,10 @@ export type ICustomerManagementUpdateData = ICustomerManagementUpdatePayload & {
 export interface IConnectCustomerPayload {
   business_uuid: string;
   user_id: number;
+}
+
+export interface IConnectionRequestResponsePayload {
+  request_status: Exclude<CustomerRequestStatus, "pending">;
 }
 
 export interface ICustomerSearchResult {
