@@ -86,7 +86,7 @@ export const createUnit = AsyncHandler(async (req, res): Promise<void> => {
   if (existingUnit) throw new ConflictError(errorMessages.UNIT.ALREADY_EXISTS);
 
   const unit = await createUnitService({
-    name: data.name,
+    ...data,
     created_by: req.currentUser.id,
   });
   res

@@ -4,6 +4,9 @@ export interface IUnitSchema {
   id: number;
   uuid: string;
   name: string;
+  code: string;
+  type: string;
+  factor: number | string;
   created_by: number | null;
   updated_by: number | null;
   deleted_by: number | null;
@@ -26,17 +29,22 @@ export type UnitCreationSchema = Optional<
 
 export interface IUnitModel extends Model<IUnitSchema, UnitCreationSchema>, IUnitSchema {}
 
-export type IUnitCreatePayload = Pick<IUnitSchema, "name">;
+export type IUnitCreatePayload = Pick<IUnitSchema, "name" | "code" | "type"> & {
+  factor: number;
+};
 
 export type IUnitCreateData = IUnitCreatePayload & { created_by: number };
 
-export type IUnitUpdatePayload = Partial<Pick<IUnitSchema, "name">>;
+export type IUnitUpdatePayload = Partial<
+  Pick<IUnitSchema, "name" | "code" | "type"> & { factor: number }
+>;
 
 export type IUnitUpdateData = IUnitUpdatePayload & { updated_by: number };
 
 export type IUnitPublic = Pick<
   IUnitSchema,
-  "id" | "uuid" | "name" | "created_by" | "created_at" | "updated_at"
+  "id" | "uuid" | "name" | "code" | "type" | "created_by" | "created_at" | "updated_at"
 > & {
+  factor: number;
   can_manage: boolean;
 };

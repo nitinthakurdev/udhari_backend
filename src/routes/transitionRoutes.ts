@@ -1,9 +1,10 @@
 import {
   createTransition,
-  deleteTransition,
+  cancelTransition,
   getTransition,
   listBusinessTransitions,
   listTransitions,
+  receiveTransitionPayment,
   updateTransition,
 } from "@/controllers/transitionController";
 import {
@@ -22,7 +23,8 @@ export const transitionRoutes = (): Router => {
   routes.route("/create").post(validateCreateTransition, createTransition);
   routes.route("/details/:uuid").get(validateTransitionUuid, getTransition);
   routes.route("/update/:uuid").patch(validateUpdateTransition, updateTransition);
-  routes.route("/delete/:uuid").delete(validateTransitionUuid, deleteTransition);
+  routes.route("/cancel/:uuid").patch(validateTransitionUuid, cancelTransition);
+  routes.route("/payment-received/:uuid").patch(validateTransitionUuid, receiveTransitionPayment);
 
   return routes;
 };

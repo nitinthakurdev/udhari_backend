@@ -8,6 +8,7 @@ export interface ICustomerManagementSchema {
   connect_user_id: number;
   request_status: CustomerRequestStatus;
   business_id: number;
+  source_business_id: number | null;
   role: string;
   updated_by: number | null;
   deleted_by: number | null;
@@ -22,6 +23,7 @@ export type CustomerManagementCreationSchema = Optional<
   | "id"
   | "uuid"
   | "request_status"
+  | "source_business_id"
   | "updated_by"
   | "deleted_by"
   | "created_by"
@@ -38,10 +40,11 @@ export interface ICustomerManagementModel
 export type ICustomerManagementPayload = Pick<
   ICustomerManagementSchema,
   "connect_user_id" | "business_id" | "role"
->;
+> & { source_business_uuid?: string };
 
 export type ICustomerManagementCreateData = ICustomerManagementPayload & {
   created_by: number;
+  source_business_id: number | null;
 };
 
 export type ICustomerManagementUpdatePayload = Partial<ICustomerManagementPayload>;

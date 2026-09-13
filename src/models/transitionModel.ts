@@ -14,11 +14,19 @@ const transitionsModel = sequelize.define<ITransitionModel>(
       type: DataTypes.STRING,
       defaultValue: DataTypes.UUIDV4,
     },
-    user_id: {
+    customer_user_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    customer_business_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     business_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    business_user_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
@@ -27,11 +35,11 @@ const transitionsModel = sequelize.define<ITransitionModel>(
       allowNull: false,
     },
     product_qty: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
       defaultValue: 1,
     },
-    product_price: {
+    product_unit_price: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
     },
@@ -40,20 +48,20 @@ const transitionsModel = sequelize.define<ITransitionModel>(
       allowNull: false,
       defaultValue: 0,
     },
-    status: {
-      type: DataTypes.STRING(30),
+    request_status: {
+      type: DataTypes.ENUM("pending", "approved", "rejected", "not_available", "cancelled"),
       allowNull: false,
       defaultValue: "pending",
     },
-    approved_by_user: {
-      type: DataTypes.BOOLEAN,
+    payment_status: {
+      type: DataTypes.ENUM("paid", "unpaid"),
       allowNull: false,
-      defaultValue: false,
+      defaultValue: "unpaid",
     },
-    approved_by_business: {
-      type: DataTypes.BOOLEAN,
+    balance_type: {
+      type: DataTypes.ENUM("payable", "receivable"),
       allowNull: false,
-      defaultValue: false,
+      defaultValue: "payable",
     },
     unit_id: {
       type: DataTypes.INTEGER,
@@ -97,8 +105,13 @@ const transitionsModel = sequelize.define<ITransitionModel>(
     deletedAt: "deleted_at",
     indexes: [
       { name: "transitions_uuid_unique", unique: true, fields: ["uuid"] },
-      { name: "transitions_user_id", fields: ["user_id"] },
+      { name: "transitions_customer_user_id", fields: ["customer_user_id"] },
+      {
+        name: "transitions_customer_business_id",
+        fields: ["customer_business_id"],
+      },
       { name: "transitions_business_id", fields: ["business_id"] },
+      { name: "transitions_business_user_id", fields: ["business_user_id"] },
       { name: "transitions_unit_id", fields: ["unit_id"] },
     ],
   },

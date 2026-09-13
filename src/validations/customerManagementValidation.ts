@@ -26,7 +26,13 @@ const uuidParams = z.strictObject({
   }),
 });
 
-const createPayload = z.strictObject(fields, { error: messages.UNKNOWN_FIELDS });
+const createPayload = z.strictObject(
+  {
+    ...fields,
+    source_business_uuid: z.uuid().optional(),
+  },
+  { error: messages.UNKNOWN_FIELDS },
+);
 
 const connectCustomerPayload = z.strictObject(
   {

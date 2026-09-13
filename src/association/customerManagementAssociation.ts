@@ -34,3 +34,12 @@ businessModel.hasMany(customerManagementModel, {
   as: "customer_connections",
 });
 customerManagementModel.belongsTo(businessModel, { foreignKey: "business_id", as: "business" });
+
+businessModel.hasMany(customerManagementModel, {
+  foreignKey: "source_business_id",
+  as: "outgoing_business_connections",
+});
+customerManagementModel.belongsTo(businessModel, {
+  foreignKey: "source_business_id",
+  as: "source_business",
+});

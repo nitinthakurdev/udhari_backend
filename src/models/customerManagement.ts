@@ -27,6 +27,10 @@ const customerManagementModel = sequelize.define<ICustomerManagementModel>(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    source_business_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     role: {
       type: DataTypes.STRING,
       allowNull: false,

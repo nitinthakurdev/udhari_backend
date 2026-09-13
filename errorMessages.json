@@ -47,15 +47,18 @@
   },
   "TRANSITION": {
     "NOT_FOUND": "Transition not found or you do not have permission to access it.",
-    "USER_NOT_FOUND": "The selected user was not found.",
+    "USER_NOT_FOUND": "The selected customer was not found.",
     "BUSINESS_NOT_FOUND": "The selected business was not found.",
     "CONNECTION_NOT_FOUND": "The user is not connected to the selected business.",
     "UNIT_NOT_FOUND": "The selected unit is not available for this business.",
     "ACCESS_DENIED": "Only the connected user or business owner can access this transition.",
-    "USER_APPROVAL_DENIED": "Only the connected user can change user approval.",
-    "BUSINESS_APPROVAL_DENIED": "Only the business owner can change business approval.",
-    "APPROVAL_CANNOT_BE_REVOKED": "An approval cannot be revoked after it has been given.",
-    "LOCKED": "This transition is fully approved and can no longer be edited or deleted."
+    "APPROVAL_DENIED": "The party that created this transition cannot approve it.",
+    "EDIT_DENIED": "Only the party that created this pending transition can edit it.",
+    "CANCEL_DENIED": "Only the party that created this pending transition can cancel it.",
+    "LOCKED": "Only a pending transition can be edited, approved, or cancelled.",
+    "PAYMENT_RECEIPT_DENIED": "Only the business with a receivable balance can confirm payment.",
+    "PAYMENT_REQUIRES_APPROVAL": "Payment can only be received for an approved transition.",
+    "BALANCE_TYPE_DENIED": "Payable or receivable can only be selected for business-to-business transitions."
   },
   "UNIT": {
     "ALREADY_EXISTS": "A unit with this name already exists.",

@@ -42,7 +42,8 @@
     "LIST": "Transitions fetched successfully.",
     "GET": "Transition fetched successfully.",
     "UPDATE": "Transition updated successfully.",
-    "DELETE": "Transition deleted successfully."
+    "CANCEL": "Transition cancelled successfully.",
+    "PAYMENT_RECEIVED": "Payment marked as received successfully."
   },
   "UNIT": {
     "CREATE": "Unit created successfully.",

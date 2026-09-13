@@ -6,12 +6,25 @@ import { userModel } from "@/models/userModel";
 import type { IUnitCreateData, IUnitPublic, IUnitSchema, IUnitUpdateData } from "@/types/unitTypes";
 import { Op, type WhereOptions } from "sequelize";
 
-const unitAttributes = ["id", "uuid", "name", "created_by", "created_at", "updated_at"];
+const unitAttributes = [
+  "id",
+  "uuid",
+  "name",
+  "code",
+  "type",
+  "factor",
+  "created_by",
+  "created_at",
+  "updated_at",
+];
 
 const toPublicUnit = (unit: IUnitSchema, canManage = false): IUnitPublic => ({
   id: unit.id,
   uuid: unit.uuid,
   name: unit.name,
+  code: unit.code,
+  type: unit.type,
+  factor: Number(unit.factor),
   created_by: unit.created_by,
   created_at: unit.created_at,
   updated_at: unit.updated_at,

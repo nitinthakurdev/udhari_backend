@@ -5,10 +5,15 @@ import validationMessages from "../../validationMessage.json";
 const messages = validationMessages.TRANSITION;
 
 const fields = {
-  user_id: z
-    .number({ error: messages.USER_ID_REQUIRED })
-    .int({ error: messages.USER_ID_INVALID })
-    .positive({ error: messages.USER_ID_INVALID }),
+  customer_user_id: z
+    .number({ error: messages.CUSTOMER_USER_ID_REQUIRED })
+    .int({ error: messages.CUSTOMER_USER_ID_INVALID })
+    .positive({ error: messages.CUSTOMER_USER_ID_INVALID }),
+  customer_business_id: z
+    .number({ error: messages.CUSTOMER_BUSINESS_ID_INVALID })
+    .int({ error: messages.CUSTOMER_BUSINESS_ID_INVALID })
+    .positive({ error: messages.CUSTOMER_BUSINESS_ID_INVALID })
+    .nullable(),
   business_id: z
     .number({ error: messages.BUSINESS_ID_REQUIRED })
     .int({ error: messages.BUSINESS_ID_INVALID })
@@ -24,24 +29,20 @@ const fields = {
     .max(150, { error: messages.PRODUCT_NAME_MAX_LENGTH }),
   product_qty: z
     .number({ error: messages.PRODUCT_QTY_INVALID })
-    .int({ error: messages.PRODUCT_QTY_INVALID })
     .positive({ error: messages.PRODUCT_QTY_INVALID })
     .max(1_000_000, { error: messages.PRODUCT_QTY_MAX }),
-  product_price: z
-    .number({ error: messages.PRODUCT_PRICE_REQUIRED })
-    .nonnegative({ error: messages.PRODUCT_PRICE_INVALID })
-    .max(9_999_999_999.99, { error: messages.PRODUCT_PRICE_MAX }),
+  product_unit_price: z
+    .number({ error: messages.PRODUCT_UNIT_PRICE_REQUIRED })
+    .nonnegative({ error: messages.PRODUCT_UNIT_PRICE_INVALID })
+    .max(9_999_999_999.99, { error: messages.PRODUCT_UNIT_PRICE_MAX }),
   total_price: z
     .number({ error: messages.TOTAL_PRICE_REQUIRED })
     .nonnegative({ error: messages.TOTAL_PRICE_INVALID })
     .max(9_999_999_999.99, { error: messages.TOTAL_PRICE_MAX }),
-  status: z
-    .string({ error: messages.STATUS_INVALID })
-    .trim()
-    .min(2, { error: messages.STATUS_INVALID })
-    .max(30, { error: messages.STATUS_MAX_LENGTH }),
-  approved_by_user: z.boolean({ error: messages.APPROVED_BY_USER_INVALID }),
-  approved_by_business: z.boolean({ error: messages.APPROVED_BY_BUSINESS_INVALID }),
+  request_status: z.literal("approved", { error: messages.REQUEST_STATUS_INVALID }),
+  balance_type: z.enum(["payable", "receivable"], {
+    error: messages.BALANCE_TYPE_INVALID,
+  }),
   comment: z
     .string({ error: messages.COMMENT_INVALID })
     .trim()
@@ -56,20 +57,28 @@ const uuidParams = z.strictObject({
   }),
 });
 
-const createPayload = z.strictObject(
-  {
-    user_id: fields.user_id,
+const createPayload = z
+  .strictObject(
+    {
+    customer_user_id: fields.customer_user_id.optional(),
+    customer_business_id: fields.customer_business_id.optional(),
     business_id: fields.business_id,
     unit_id: fields.unit_id,
     product_name: fields.product_name,
     product_qty: fields.product_qty.optional(),
-    product_price: fields.product_price,
+    product_unit_price: fields.product_unit_price,
     total_price: fields.total_price,
-    status: fields.status.optional(),
-    comment: fields.comment.optional(),
-  },
-  { error: messages.UNKNOWN_FIELDS },
-);
+      customer_business_uuid: z.uuid({ error: messages.CUSTOMER_BUSINESS_UUID_INVALID }).optional(),
+      balance_type: fields.balance_type.optional(),
+      comment: fields.comment.optional(),
+    },
+    { error: messages.UNKNOWN_FIELDS },
+  )
+  .refine(
+    (data) =>
+      data.customer_business_uuid === undefined || data.balance_type !== undefined,
+    { error: messages.BALANCE_TYPE_REQUIRED, path: ["balance_type"] },
+  );
 
 const updatePayload = z
   .strictObject(
@@ -77,16 +86,18 @@ const updatePayload = z
       product_name: fields.product_name.optional(),
       unit_id: fields.unit_id.optional(),
       product_qty: fields.product_qty.optional(),
-      product_price: fields.product_price.optional(),
+      product_unit_price: fields.product_unit_price.optional(),
       total_price: fields.total_price.optional(),
-      status: fields.status.optional(),
-      approved_by_user: fields.approved_by_user.optional(),
-      approved_by_business: fields.approved_by_business.optional(),
+      request_status: fields.request_status.optional(),
+      balance_type: fields.balance_type.optional(),
       comment: fields.comment.optional(),
     },
     { error: messages.UNKNOWN_FIELDS },
   )
-  .refine((data) => Object.keys(data).length > 0, { error: messages.UPDATE_EMPTY });
+  .refine((data) => Object.keys(data).length > 0, { error: messages.UPDATE_EMPTY })
+  .refine((data) => data.request_status === undefined || Object.keys(data).length === 1, {
+    error: messages.APPROVAL_WITH_CHANGES,
+  });
 
 export const validateCreateTransition = validateRequest({
   body: createPayload,

@@ -1,7 +1,7 @@
 import {
+  checkBusinessTransitionAccess,
   checkTransitionAccess,
   createTransition as createTransitionService,
-  deleteTransitionByUuid,
   findTransitionByUuid,
   findTransitions,
   findTransitionsForBusiness,
@@ -74,30 +74,67 @@ export const createTransition = AsyncHandler(async (req, res): Promise<void> => 
   }
 
   const data = req.body as ITransitionCreatePayload;
-  const access = await checkTransitionAccess(data.user_id, data.business_id, req.currentUser.id);
+  const roleSlug = req.currentUser.user_role?.slug;
+  const sourceBusinessUuid =
+    roleSlug === "business" ? data.customer_business_uuid : undefined;
+  const isBusinessToBusiness = Boolean(sourceBusinessUuid);
+  const customerUserId = isBusinessToBusiness
+    ? req.currentUser.id
+    : roleSlug === "user"
+      ? req.currentUser.id
+      : data.customer_user_id;
 
-  if (!access.userExists) {
+  if (!customerUserId) {
     throw new NotFoundError(errorMessages.TRANSITION.USER_NOT_FOUND);
   }
-  if (!access.businessExists) {
+
+  const businessAccess = sourceBusinessUuid
+    ? await checkBusinessTransitionAccess(
+        sourceBusinessUuid,
+        data.business_id,
+        req.currentUser.id,
+      )
+    : null;
+  const access = !isBusinessToBusiness
+    ? await checkTransitionAccess(customerUserId, data.business_id, req.currentUser.id)
+    : null;
+
+  if (access && !access.customerExists) {
+    throw new NotFoundError(errorMessages.TRANSITION.USER_NOT_FOUND);
+  }
+  if ((access && !access.businessExists) || (businessAccess && !businessAccess.targetBusinessExists)) {
     throw new NotFoundError(errorMessages.TRANSITION.BUSINESS_NOT_FOUND);
   }
-  if (!access.connectionExists) {
+  if (!(access?.connectionExists ?? businessAccess?.connectionExists)) {
     throw new NotFoundError(errorMessages.TRANSITION.CONNECTION_NOT_FOUND);
   }
-  if (!access.canAccess) {
+  if (access && !access.canAccess) {
     throw new ForbiddenError(errorMessages.TRANSITION.ACCESS_DENIED);
   }
+  const businessUserId = access?.businessUserId ?? businessAccess?.targetOwnerId;
+  if (!businessUserId) {
+    throw new NotFoundError(errorMessages.TRANSITION.BUSINESS_NOT_FOUND);
+  }
 
-  if (!(await isUnitAvailableForBusiness(data.unit_id, data.business_id))) {
+  const unitBusinessId = businessAccess?.sourceBusinessId ?? data.business_id;
+  if (!unitBusinessId || !(await isUnitAvailableForBusiness(data.unit_id, unitBusinessId))) {
     throw new NotFoundError(errorMessages.TRANSITION.UNIT_NOT_FOUND);
   }
 
   const transition = await createTransitionService({
-    ...data,
-    status: "pending",
-    approved_by_user: access.isUser,
-    approved_by_business: access.isBusinessOwner,
+    business_id: data.business_id,
+    unit_id: data.unit_id,
+    product_name: data.product_name,
+    product_unit_price: data.product_unit_price,
+    total_price: data.total_price,
+    ...(data.product_qty !== undefined ? { product_qty: data.product_qty } : {}),
+    ...(data.comment !== undefined ? { comment: data.comment } : {}),
+    customer_user_id: customerUserId,
+    customer_business_id: businessAccess?.sourceBusinessId ?? null,
+    business_user_id: businessUserId,
+    request_status: "pending",
+    payment_status: "unpaid",
+    balance_type: isBusinessToBusiness ? (data.balance_type ?? "payable") : "payable",
     created_by: req.currentUser.id,
   });
 
@@ -121,38 +158,34 @@ export const updateTransition = AsyncHandler(async (req, res): Promise<void> => 
     throw new NotFoundError(errorMessages.TRANSITION.NOT_FOUND);
   }
 
-  if (currentTransition.approved_by_user && currentTransition.approved_by_business) {
+  if (currentTransition.request_status !== "pending") {
     throw new ForbiddenError(errorMessages.TRANSITION.LOCKED);
   }
 
-  const access = await checkTransitionAccess(
-    currentTransition.user_id,
-    currentTransition.business_id,
-    req.currentUser.id,
-  );
-
-  if (data.approved_by_user !== undefined && !access.isUser) {
-    throw new ForbiddenError(errorMessages.TRANSITION.USER_APPROVAL_DENIED);
+  const isApproval = data.request_status === "approved";
+  if (isApproval && currentTransition.created_by === req.currentUser.id) {
+    throw new ForbiddenError(errorMessages.TRANSITION.APPROVAL_DENIED);
   }
-  if (data.approved_by_business !== undefined && !access.isBusinessOwner) {
-    throw new ForbiddenError(errorMessages.TRANSITION.BUSINESS_APPROVAL_DENIED);
+  if (!isApproval && currentTransition.created_by !== req.currentUser.id) {
+    throw new ForbiddenError(errorMessages.TRANSITION.EDIT_DENIED);
   }
-  if (data.approved_by_user === false || data.approved_by_business === false) {
-    throw new ForbiddenError(errorMessages.TRANSITION.APPROVAL_CANNOT_BE_REVOKED);
+  if (data.balance_type !== undefined && currentTransition.customer_business_id === null) {
+    throw new ForbiddenError(errorMessages.TRANSITION.BALANCE_TYPE_DENIED);
   }
 
   if (
     data.unit_id !== undefined &&
-    !(await isUnitAvailableForBusiness(data.unit_id, currentTransition.business_id))
+    !(await isUnitAvailableForBusiness(
+      data.unit_id,
+      currentTransition.customer_business_id ?? currentTransition.business_id,
+    ))
   ) {
     throw new NotFoundError(errorMessages.TRANSITION.UNIT_NOT_FOUND);
   }
 
-  const approvedByUser = data.approved_by_user ?? currentTransition.approved_by_user;
-  const approvedByBusiness = data.approved_by_business ?? currentTransition.approved_by_business;
   const transition = await updateTransitionByUuid(uuid, req.currentUser.id, {
     ...data,
-    status: approvedByUser && approvedByBusiness ? "approved" : "pending",
+    request_status: isApproval ? "approved" : "pending",
     updated_by: req.currentUser.id,
   });
 
@@ -165,7 +198,7 @@ export const updateTransition = AsyncHandler(async (req, res): Promise<void> => 
     .json(response.ok(transition, { message: successMessages.TRANSITION.UPDATE }));
 });
 
-export const deleteTransition = AsyncHandler(async (req, res): Promise<void> => {
+export const cancelTransition = AsyncHandler(async (req, res): Promise<void> => {
   if (!req.currentUser) {
     throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
   }
@@ -176,17 +209,60 @@ export const deleteTransition = AsyncHandler(async (req, res): Promise<void> => 
   if (!currentTransition) {
     throw new NotFoundError(errorMessages.TRANSITION.NOT_FOUND);
   }
-  if (currentTransition.approved_by_user && currentTransition.approved_by_business) {
+  if (currentTransition.request_status !== "pending") {
     throw new ForbiddenError(errorMessages.TRANSITION.LOCKED);
   }
+  if (currentTransition.created_by !== req.currentUser.id) {
+    throw new ForbiddenError(errorMessages.TRANSITION.CANCEL_DENIED);
+  }
 
-  const deleted = await deleteTransitionByUuid(uuid, req.currentUser.id);
+  const transition = await updateTransitionByUuid(uuid, req.currentUser.id, {
+    request_status: "cancelled",
+    updated_by: req.currentUser.id,
+  });
 
-  if (!deleted) {
+  if (!transition) {
     throw new NotFoundError(errorMessages.TRANSITION.NOT_FOUND);
   }
 
   res
     .status(StatusCodes.OK)
-    .json(response.ok(null, { message: successMessages.TRANSITION.DELETE }));
+    .json(response.ok(transition, { message: successMessages.TRANSITION.CANCEL }));
+});
+
+export const receiveTransitionPayment = AsyncHandler(async (req, res): Promise<void> => {
+  if (!req.currentUser) {
+    throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
+  }
+
+  const uuid = req.params["uuid"] as string;
+  const currentTransition = await findTransitionByUuid(uuid, req.currentUser.id);
+
+  if (!currentTransition) {
+    throw new NotFoundError(errorMessages.TRANSITION.NOT_FOUND);
+  }
+  if (currentTransition.account_type !== "receivable") {
+    throw new ForbiddenError(errorMessages.TRANSITION.PAYMENT_RECEIPT_DENIED);
+  }
+  if (currentTransition.request_status !== "approved") {
+    throw new ForbiddenError(errorMessages.TRANSITION.PAYMENT_REQUIRES_APPROVAL);
+  }
+
+  const transition =
+    currentTransition.payment_status === "paid"
+      ? currentTransition
+      : await updateTransitionByUuid(uuid, req.currentUser.id, {
+          payment_status: "paid",
+          updated_by: req.currentUser.id,
+        });
+
+  if (!transition) {
+    throw new NotFoundError(errorMessages.TRANSITION.NOT_FOUND);
+  }
+
+  res.status(StatusCodes.OK).json(
+    response.ok(transition, {
+      message: successMessages.TRANSITION.PAYMENT_RECEIVED,
+    }),
+  );
 });

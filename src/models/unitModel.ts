@@ -18,6 +18,19 @@ const unitModel = sequelize.define<IUnitModel>(
       type: DataTypes.STRING(50),
       allowNull: false,
     },
+    code: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+    },
+    type: {
+      type: DataTypes.STRING(30),
+      allowNull: false,
+    },
+    factor: {
+      type: DataTypes.DECIMAL(18, 6),
+      allowNull: false,
+      defaultValue: 1,
+    },
     created_by: {
       type: DataTypes.INTEGER,
       allowNull: true,

@@ -16,6 +16,7 @@ const customerAttributes = [
   "connect_user_id",
   "request_status",
   "business_id",
+  "source_business_id",
   "created_by",
   "role",
   "created_at",
@@ -48,7 +49,45 @@ const customerIncludes = [
     as: "business",
     attributes: ["uuid", "name", "slug", "created_by"],
   },
+  {
+    model: businessModel,
+    as: "source_business",
+    attributes: ["uuid", "name", "slug", "created_by"],
+  },
 ];
+
+export const findOwnedBusinessId = async (uuid: string, ownerId: number) => {
+  const business = await businessModel.findOne({
+    where: { uuid, created_by: ownerId },
+    attributes: ["id"],
+  });
+  return business?.id ?? null;
+};
+
+export const getBusinessConnectionsForBusiness = async (
+  ownerId: number,
+  businessUuid: string,
+) => {
+  const business = await businessModel.findOne({
+    where: { uuid: businessUuid, created_by: ownerId },
+    attributes: ["id"],
+  });
+  if (!business) return undefined;
+
+  return customerManagementModel.findAll({
+    where: {
+      request_status: "approved",
+      source_business_id: { [Op.not]: null },
+      [Op.or]: [
+        { source_business_id: business.id },
+        { business_id: business.id },
+      ],
+    },
+    attributes: customerAttributes,
+    include: customerIncludes,
+    order: [["created_at", "DESC"]],
+  });
+};
 
 export const findCustomerManagementByUuid = async (uuid: string, createdBy: number) =>
   customerManagementModel.findOne({
@@ -123,6 +162,7 @@ export const getUsersConnectedToBusiness = async (
   return customerManagementModel.findAll({
     where: {
       business_id: business.id,
+      source_business_id: null,
       request_status: "approved",
       [Op.or]: [
         { connect_user_id: businessOwnerId, role: "customer" },

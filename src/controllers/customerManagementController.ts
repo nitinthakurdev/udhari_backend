@@ -5,6 +5,8 @@ import {
   deleteCustomerConnectionByBusinessOwner,
   deleteCustomerManagementByUuid,
   findCustomerManagementByUuid,
+  findOwnedBusinessId,
+  getBusinessConnectionsForBusiness,
   getConnectionRequests,
   getCustomerConnectionReferences,
   getConnectedUsers,
@@ -62,6 +64,24 @@ export const listUsersConnectedToBusiness = AsyncHandler(async (req, res): Promi
     .status(StatusCodes.OK)
     .json(response.ok(customers, { message: successMessages.CUSTOMER_MANAGEMENT.LIST }));
 });
+
+export const listBusinessConnectionsForBusiness = AsyncHandler(
+  async (req, res): Promise<void> => {
+    if (!req.currentUser) {
+      throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
+    }
+    const connections = await getBusinessConnectionsForBusiness(
+      req.currentUser.id,
+      req.params["uuid"] as string,
+    );
+    if (!connections) {
+      throw new NotFoundError(errorMessages.BUSINESS.NOT_FOUND);
+    }
+    res.status(StatusCodes.OK).json(
+      response.ok(connections, { message: successMessages.CUSTOMER_MANAGEMENT.LIST }),
+    );
+  },
+);
 
 export const searchCustomers = AsyncHandler(async (req, res): Promise<void> => {
   if (!req.currentUser) {
@@ -124,6 +144,7 @@ export const connectCustomer = AsyncHandler(async (req, res): Promise<void> => {
     business_id: references.business.id,
     role: "business",
     created_by: req.currentUser.id,
+    source_business_id: null,
   });
 
   res.status(StatusCodes.CREATED).json(
@@ -192,6 +213,14 @@ export const createCustomerManagement = AsyncHandler(async (req, res): Promise<v
   }
 
   const data = req.body as ICustomerManagementPayload;
+  const roleSlug = req.currentUser.user_role?.slug;
+  const sourceBusinessId =
+    roleSlug === "business" && data.source_business_uuid
+      ? await findOwnedBusinessId(data.source_business_uuid, req.currentUser.id)
+      : null;
+  if (roleSlug === "business" && !sourceBusinessId) {
+    throw new NotFoundError(errorMessages.CUSTOMER_MANAGEMENT.BUSINESS_NOT_FOUND);
+  }
   const references = await customerConnectionReferencesExist(
     data.connect_user_id,
     data.business_id,
@@ -217,9 +246,11 @@ export const createCustomerManagement = AsyncHandler(async (req, res): Promise<v
   }
 
   const customer = await createCustomerManagementService({
-    ...data,
+    connect_user_id: data.connect_user_id,
+    business_id: data.business_id,
     role: "customer",
     created_by: req.currentUser.id,
+    source_business_id: sourceBusinessId,
   });
 
   res.status(StatusCodes.CREATED).json(

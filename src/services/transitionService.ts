@@ -15,82 +15,85 @@ import { Op, type WhereOptions } from "sequelize";
 
 const transitionAttributes = [
   "uuid",
-  "user_id",
+  "customer_user_id",
+  "customer_business_id",
   "business_id",
+  "business_user_id",
   "unit_id",
   "product_name",
   "product_qty",
-  "product_price",
+  "product_unit_price",
   "total_price",
-  "status",
-  "approved_by_user",
-  "approved_by_business",
+  "request_status",
+  "payment_status",
+  "balance_type",
   "comment",
   "created_by",
   "created_at",
   "updated_at",
 ];
 
-const toPublicTransition = (transition: ITransitionSchema): ITransitionPublic => ({
+const inverseBalanceType = (balanceType: ITransitionSchema["balance_type"]) =>
+  balanceType === "payable" ? "receivable" : "payable";
+
+const toPublicTransition = (
+  transition: ITransitionSchema,
+  currentUserId: number,
+): ITransitionPublic => ({
   uuid: transition.uuid,
-  user_id: transition.user_id,
+  customer_user_id: transition.customer_user_id,
+  customer_business_id: transition.customer_business_id,
   business_id: transition.business_id,
+  business_user_id: transition.business_user_id,
   unit_id: transition.unit_id,
   product_name: transition.product_name,
-  product_qty: transition.product_qty,
-  product_price: Number(transition.product_price),
+  product_qty: Number(transition.product_qty),
+  product_unit_price: Number(transition.product_unit_price),
   total_price: Number(transition.total_price),
-  status: transition.status,
-  approved_by_user: transition.approved_by_user,
-  approved_by_business: transition.approved_by_business,
+  request_status: transition.request_status,
+  payment_status: transition.payment_status,
+  balance_type: transition.balance_type,
+  account_type:
+    transition.customer_user_id === currentUserId
+      ? transition.balance_type
+      : inverseBalanceType(transition.balance_type),
   comment: transition.comment,
   created_by: transition.created_by,
   created_at: transition.created_at,
   updated_at: transition.updated_at,
 });
 
-const getAccessibleWhere = async (
-  currentUserId: number,
-): Promise<WhereOptions<ITransitionSchema>> => {
-  const businesses = await businessModel.findAll({
-    where: { created_by: currentUserId },
-    attributes: ["id"],
-    raw: true,
-  });
-
+const getAccessibleWhere = (currentUserId: number): WhereOptions<ITransitionSchema> => {
   return {
-    [Op.or]: [
-      { user_id: currentUserId },
-      { business_id: { [Op.in]: businesses.map((business) => business.id) } },
-    ],
+    [Op.or]: [{ customer_user_id: currentUserId }, { business_user_id: currentUserId }],
   };
 };
 
 export const checkTransitionAccess = async (
-  userId: number,
+  customerUserId: number,
   businessId: number,
   currentUserId: number,
 ): Promise<ITransitionAccess> => {
-  const [user, business] = await Promise.all([
-    userModel.findByPk(userId, { attributes: ["id"] }),
+  const [customer, business] = await Promise.all([
+    userModel.findByPk(customerUserId, { attributes: ["id"] }),
     businessModel.findByPk(businessId, { attributes: ["id", "created_by"] }),
   ]);
   const businessOwnerId = business?.created_by ?? null;
   const connection =
-    user && businessOwnerId
+    customer && businessOwnerId
       ? await customerManagementModel.findOne({
           where: {
             business_id: businessId,
             request_status: "approved",
             [Op.or]: [
               {
-                created_by: userId,
+                created_by: customerUserId,
                 connect_user_id: businessOwnerId,
                 role: "customer",
               },
               {
                 created_by: businessOwnerId,
-                connect_user_id: userId,
+                connect_user_id: customerUserId,
                 role: "business",
               },
             ],
@@ -100,12 +103,57 @@ export const checkTransitionAccess = async (
       : null;
 
   return {
-    userExists: Boolean(user),
+    customerExists: Boolean(customer),
     businessExists: Boolean(business),
+    businessUserId: businessOwnerId,
     connectionExists: Boolean(connection),
-    canAccess: currentUserId === userId || currentUserId === businessOwnerId,
-    isUser: currentUserId === userId,
+    canAccess: currentUserId === customerUserId || currentUserId === businessOwnerId,
+    isCustomer: currentUserId === customerUserId,
     isBusinessOwner: currentUserId === businessOwnerId,
+  };
+};
+
+export const checkBusinessTransitionAccess = async (
+  sourceBusinessUuid: string,
+  targetBusinessId: number,
+  currentUserId: number,
+) => {
+  const [sourceBusiness, targetBusiness] = await Promise.all([
+    businessModel.findOne({
+      where: { uuid: sourceBusinessUuid, created_by: currentUserId },
+      attributes: ["id", "created_by"],
+    }),
+    businessModel.findByPk(targetBusinessId, {
+      attributes: ["id", "created_by"],
+    }),
+  ]);
+  const targetOwnerId = targetBusiness?.created_by ?? null;
+  const connection =
+    sourceBusiness && targetOwnerId && targetOwnerId !== currentUserId
+      ? await customerManagementModel.findOne({
+          where: {
+            request_status: "approved",
+            source_business_id: { [Op.not]: null },
+            [Op.or]: [
+              {
+                source_business_id: sourceBusiness.id,
+                business_id: targetBusinessId,
+              },
+              {
+                source_business_id: targetBusinessId,
+                business_id: sourceBusiness.id,
+              },
+            ],
+          },
+          attributes: ["id"],
+        })
+      : null;
+
+  return {
+    sourceBusinessId: sourceBusiness?.id ?? null,
+    targetBusinessExists: Boolean(targetBusiness),
+    targetOwnerId,
+    connectionExists: Boolean(connection),
   };
 };
 
@@ -132,18 +180,18 @@ export const isUnitAvailableForBusiness = async (
 
 export const createTransition = async (data: ITransitionCreateData): Promise<ITransitionPublic> => {
   const transition = await transitionsModel.create(data);
-  return toPublicTransition(transition.dataValues);
+  return toPublicTransition(transition.dataValues, data.created_by);
 };
 
 export const findTransitions = async (currentUserId: number): Promise<ITransitionPublic[]> => {
-  const where = await getAccessibleWhere(currentUserId);
+  const where = getAccessibleWhere(currentUserId);
   const transitions = await transitionsModel.findAll({
     where,
     attributes: transitionAttributes,
     order: [["created_at", "DESC"]],
   });
 
-  return transitions.map((transition) => toPublicTransition(transition.dataValues));
+  return transitions.map((transition) => toPublicTransition(transition.dataValues, currentUserId));
 };
 
 export const findTransitionsForBusiness = async (
@@ -158,25 +206,29 @@ export const findTransitionsForBusiness = async (
   if (!business) return undefined;
 
   const transitions = await transitionsModel.findAll({
-    where: { business_id: business.id },
+    where: {
+      [Op.or]: [{ business_id: business.id }, { customer_business_id: business.id }],
+    },
     attributes: transitionAttributes,
     order: [["created_at", "DESC"]],
   });
 
-  return transitions.map((transition) => toPublicTransition(transition.dataValues));
+  return transitions.map((transition) =>
+    toPublicTransition(transition.dataValues, businessOwnerId),
+  );
 };
 
 export const findTransitionByUuid = async (
   uuid: string,
   currentUserId: number,
 ): Promise<ITransitionPublic | undefined> => {
-  const accessWhere = await getAccessibleWhere(currentUserId);
+  const accessWhere = getAccessibleWhere(currentUserId);
   const transition = await transitionsModel.findOne({
     where: { uuid, [Op.and]: [accessWhere] },
     attributes: transitionAttributes,
   });
 
-  return transition ? toPublicTransition(transition.dataValues) : undefined;
+  return transition ? toPublicTransition(transition.dataValues, currentUserId) : undefined;
 };
 
 export const updateTransitionByUuid = async (
@@ -184,7 +236,7 @@ export const updateTransitionByUuid = async (
   currentUserId: number,
   data: ITransitionUpdateData,
 ): Promise<ITransitionPublic | undefined> => {
-  const accessWhere = await getAccessibleWhere(currentUserId);
+  const accessWhere = getAccessibleWhere(currentUserId);
   const transition = await transitionsModel.findOne({
     where: { uuid, [Op.and]: [accessWhere] },
   });
@@ -192,21 +244,5 @@ export const updateTransitionByUuid = async (
   if (!transition) return undefined;
 
   const updatedTransition = await transition.update(data);
-  return toPublicTransition(updatedTransition.dataValues);
-};
-
-export const deleteTransitionByUuid = async (
-  uuid: string,
-  currentUserId: number,
-): Promise<boolean> => {
-  const accessWhere = await getAccessibleWhere(currentUserId);
-  const transition = await transitionsModel.findOne({
-    where: { uuid, [Op.and]: [accessWhere] },
-  });
-
-  if (!transition) return false;
-
-  await transition.update({ deleted_by: currentUserId });
-  await transition.destroy();
-  return true;
+  return toPublicTransition(updatedTransition.dataValues, currentUserId);
 };

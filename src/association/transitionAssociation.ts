@@ -3,8 +3,23 @@ import { transitionsModel } from "@/models/transitionModel";
 import { userModel } from "@/models/userModel";
 import { unitModel } from "@/models/unitModel";
 
-userModel.hasMany(transitionsModel, { foreignKey: "user_id", as: "transitions" });
-transitionsModel.belongsTo(userModel, { foreignKey: "user_id", as: "user" });
+userModel.hasMany(transitionsModel, {
+  foreignKey: "customer_user_id",
+  as: "customer_transitions",
+});
+transitionsModel.belongsTo(userModel, {
+  foreignKey: "customer_user_id",
+  as: "customer_user",
+});
+
+userModel.hasMany(transitionsModel, {
+  foreignKey: "business_user_id",
+  as: "business_owner_transitions",
+});
+transitionsModel.belongsTo(userModel, {
+  foreignKey: "business_user_id",
+  as: "business_user",
+});
 
 businessModel.hasMany(transitionsModel, {
   foreignKey: "business_id",
@@ -13,6 +28,15 @@ businessModel.hasMany(transitionsModel, {
 transitionsModel.belongsTo(businessModel, {
   foreignKey: "business_id",
   as: "business",
+});
+
+businessModel.hasMany(transitionsModel, {
+  foreignKey: "customer_business_id",
+  as: "customer_business_transitions",
+});
+transitionsModel.belongsTo(businessModel, {
+  foreignKey: "customer_business_id",
+  as: "customer_business",
 });
 
 unitModel.hasMany(transitionsModel, { foreignKey: "unit_id", as: "transitions" });

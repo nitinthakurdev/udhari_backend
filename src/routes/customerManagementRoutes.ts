@@ -4,6 +4,7 @@ import {
   disconnectCustomer,
   deleteCustomerManagement,
   listCustomerManagement,
+  listBusinessConnectionsForBusiness,
   listConnectionRequests,
   listUsersConnectedToBusiness,
   searchCustomers,
@@ -28,6 +29,9 @@ export const customerManagementRoutes = (): Router => {
   routes.route("/requests").get(listConnectionRequests);
   routes.route("/requests/:uuid").patch(validateConnectionRequestResponse, respondToRequest);
   routes.route("/connected-users/:uuid").get(validateBusinessUuid, listUsersConnectedToBusiness);
+  routes
+    .route("/connected-businesses/:uuid")
+    .get(requireBusinessOrAdmin, validateBusinessUuid, listBusinessConnectionsForBusiness);
   routes
     .route("/search-users/:uuid")
     .get(requireBusinessOrAdmin, validateBusinessUuid, searchCustomers);

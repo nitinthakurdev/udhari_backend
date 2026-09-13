@@ -1,18 +1,25 @@
 import type { Model, Optional } from "sequelize";
 
+export type TransitionRequestStatus =
+  "pending" | "approved" | "rejected" | "not_available" | "cancelled";
+export type TransitionPaymentStatus = "paid" | "unpaid";
+export type TransitionBalanceType = "payable" | "receivable";
+
 export interface ITransitionSchema {
   id: number;
   uuid: string;
-  user_id: number;
+  customer_user_id: number;
+  customer_business_id: number | null;
   business_id: number;
+  business_user_id: number;
   unit_id: number;
   product_name: string;
-  product_qty: number;
-  product_price: number | string;
+  product_qty: number | string;
+  product_unit_price: number | string;
   total_price: number | string;
-  status: string;
-  approved_by_user: boolean;
-  approved_by_business: boolean;
+  request_status: TransitionRequestStatus;
+  payment_status: TransitionPaymentStatus;
+  balance_type: TransitionBalanceType;
   comment: string | null;
   created_by: number | null;
   updated_by: number | null;
@@ -27,10 +34,11 @@ export type TransitionCreationSchema = Optional<
   | "id"
   | "uuid"
   | "product_qty"
+  | "customer_business_id"
   | "total_price"
-  | "status"
-  | "approved_by_user"
-  | "approved_by_business"
+  | "request_status"
+  | "payment_status"
+  | "balance_type"
   | "comment"
   | "created_by"
   | "updated_by"
@@ -45,14 +53,26 @@ export interface ITransitionModel
 
 export type ITransitionCreatePayload = Pick<
   ITransitionSchema,
-  "user_id" | "business_id" | "unit_id" | "product_name" | "product_price" | "total_price"
+  "business_id" | "unit_id" | "product_name" | "product_unit_price" | "total_price"
 > &
-  Partial<Pick<ITransitionSchema, "product_qty" | "status" | "comment">>;
+  Partial<
+    Pick<
+      ITransitionSchema,
+      "customer_user_id" | "customer_business_id" | "product_qty" | "comment"
+    >
+  > & {
+    customer_business_uuid?: string;
+    balance_type?: TransitionBalanceType;
+  };
 
 export type ITransitionCreateData = ITransitionCreatePayload & {
+  customer_user_id: number;
+  customer_business_id: number | null;
+  business_user_id: number;
+  request_status: "pending";
+  payment_status: TransitionPaymentStatus;
+  balance_type: TransitionBalanceType;
   created_by: number;
-  approved_by_user: boolean;
-  approved_by_business: boolean;
 };
 
 export type ITransitionUpdatePayload = Partial<
@@ -61,43 +81,47 @@ export type ITransitionUpdatePayload = Partial<
     | "product_name"
     | "unit_id"
     | "product_qty"
-    | "product_price"
+    | "product_unit_price"
     | "total_price"
-    | "status"
-    | "approved_by_user"
-    | "approved_by_business"
+    | "request_status"
+    | "balance_type"
     | "comment"
   >
 >;
 
-export type ITransitionUpdateData = ITransitionUpdatePayload & { updated_by: number };
+export type ITransitionUpdateData = ITransitionUpdatePayload &
+  Partial<Pick<ITransitionSchema, "payment_status">> & { updated_by: number };
 
 export type ITransitionPublic = Pick<
   ITransitionSchema,
   | "uuid"
-  | "user_id"
+  | "customer_user_id"
+  | "customer_business_id"
   | "business_id"
+  | "business_user_id"
   | "unit_id"
   | "product_name"
   | "product_qty"
-  | "product_price"
-  | "status"
-  | "approved_by_user"
-  | "approved_by_business"
+  | "product_unit_price"
+  | "request_status"
+  | "payment_status"
+  | "balance_type"
   | "comment"
   | "created_by"
   | "created_at"
   | "updated_at"
 > & {
-  product_price: number;
+  product_unit_price: number;
   total_price: number;
+  account_type: TransitionBalanceType;
 };
 
 export interface ITransitionAccess {
-  userExists: boolean;
+  customerExists: boolean;
   businessExists: boolean;
+  businessUserId: number | null;
   connectionExists: boolean;
   canAccess: boolean;
-  isUser: boolean;
+  isCustomer: boolean;
   isBusinessOwner: boolean;
 }
