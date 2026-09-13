@@ -1,7 +1,9 @@
 import {
   createBusiness,
   deleteBusiness,
+  getAddressSuggestionDetails,
   listBusinesses,
+  searchAddressSuggestions,
   searchBusinesses,
   setDefaultBusiness,
   updateBusiness,
@@ -18,6 +20,8 @@ export const businessRoutes = (): Router => {
 
   routes.route("/list").get(listBusinesses);
   routes.route("/search").get(searchBusinesses);
+  routes.route("/address-suggestions").get(searchAddressSuggestions);
+  routes.route("/address-suggestions/:placeId").get(getAddressSuggestionDetails);
   routes.route("/create").post(validateCreateBusiness, createBusiness);
   routes.route("/update/:uuid").patch(validateUpdateBusiness, updateBusiness);
   routes.route("/delete/:uuid").delete(validateBusinessUuid, deleteBusiness);

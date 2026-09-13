@@ -1,8 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-
-
 class Config {
   public NODE_ENV: string | undefined;
   public DATABASE_URL: string | undefined;
@@ -14,6 +12,7 @@ class Config {
   public SMTP_USER: string | undefined;
   public SMTP_PASS: string | undefined;
   public EMAIL_TRANSPORT: string | undefined;
+  public GOOGLE_MAPS_API_KEY: string | undefined;
 
   constructor() {
     this.NODE_ENV = process.env["NODE_ENV"];
@@ -27,7 +26,7 @@ class Config {
     this.SMTP_USER = process.env["SMTP_USER"];
     this.SMTP_PASS = process.env["SMTP_PASS"];
     this.EMAIL_TRANSPORT = process.env["EMAIL_TRANSPORT"];
-
+    this.GOOGLE_MAPS_API_KEY = process.env["GOOGLE_MAPS_API_KEY"];
   }
 }
 

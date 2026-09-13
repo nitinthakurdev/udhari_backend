@@ -1,5 +1,6 @@
 import { businessModel } from "@/models/businessModel";
 import { customerManagementModel } from "@/models/customerManagement";
+import { roleModel } from "@/models/roleModel";
 import { userModel } from "@/models/userModel";
 import type {
   ICustomerManagementCreateData,
@@ -167,6 +168,15 @@ export const searchCustomersForBusiness = async (
         { phone: { [Op.iLike]: `%${escapedSearchKey}%` } },
       ],
     },
+    include: [
+      {
+        model: roleModel,
+        as: "user_role",
+        attributes: [],
+        where: { slug: "user" },
+        required: true,
+      },
+    ],
     attributes: ["id", ...userAttributes],
     order: [
       ["first_name", "ASC"],
@@ -194,7 +204,19 @@ export const getCustomerConnectionReferences = async (
   businessOwnerId: number,
 ) => {
   const [user, business] = await Promise.all([
-    userModel.findByPk(userId, { attributes: ["id"] }),
+    userModel.findOne({
+      where: { id: userId },
+      attributes: ["id"],
+      include: [
+        {
+          model: roleModel,
+          as: "user_role",
+          attributes: [],
+          where: { slug: "user" },
+          required: true,
+        },
+      ],
+    }),
     businessModel.findOne({
       where: { uuid: businessUuid, created_by: businessOwnerId },
       attributes: ["id"],

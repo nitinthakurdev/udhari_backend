@@ -17,6 +17,7 @@ import {
   BadRequestError,
   ConflictError,
   HalSuccess,
+  InternalServerError,
   NotFoundError,
   UnauthorizedError,
 } from "hal-response";
@@ -29,8 +30,47 @@ import validationMessages from "../../validationMessage.json";
 import { toSlug } from "@/utils/slugMaker";
 import { findByIdAndUpdateWhere } from "@/services/userServices";
 import { findRoleBySlag } from "@/services/roleServices";
+import {
+  findAddressDetails,
+  findAddressSuggestions,
+  hasGooglePlacesConfiguration,
+} from "@/services/googlePlacesService";
 
 const response = new HalSuccess();
+
+const requireGooglePlacesConfiguration = () => {
+  if (!hasGooglePlacesConfiguration()) {
+    throw new InternalServerError("Google address suggestions are not configured.");
+  }
+};
+
+export const searchAddressSuggestions = AsyncHandler(async (req, res): Promise<void> => {
+  const searchKey = typeof req.query["key"] === "string" ? req.query["key"].trim() : "";
+  const sessionToken =
+    typeof req.query["session_token"] === "string" ? req.query["session_token"].trim() : undefined;
+
+  if (searchKey.length < 3 || searchKey.length > 150) {
+    throw new BadRequestError("Enter at least 3 characters to search for an address.");
+  }
+
+  requireGooglePlacesConfiguration();
+  const suggestions = await findAddressSuggestions(searchKey, sessionToken);
+  res.status(StatusCodes.OK).json(response.ok(suggestions));
+});
+
+export const getAddressSuggestionDetails = AsyncHandler(async (req, res): Promise<void> => {
+  const placeId = typeof req.params["placeId"] === "string" ? req.params["placeId"].trim() : "";
+  const sessionToken =
+    typeof req.query["session_token"] === "string" ? req.query["session_token"].trim() : undefined;
+
+  if (!placeId || placeId.length > 255) {
+    throw new BadRequestError("A valid Google place ID is required.");
+  }
+
+  requireGooglePlacesConfiguration();
+  const address = await findAddressDetails(placeId, sessionToken);
+  res.status(StatusCodes.OK).json(response.ok(address));
+});
 
 /*
 =============================================================================

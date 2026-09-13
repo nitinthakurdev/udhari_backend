@@ -53,7 +53,9 @@
     "UNIT_NOT_FOUND": "The selected unit is not available for this business.",
     "ACCESS_DENIED": "Only the connected user or business owner can access this transition.",
     "USER_APPROVAL_DENIED": "Only the connected user can change user approval.",
-    "BUSINESS_APPROVAL_DENIED": "Only the business owner can change business approval."
+    "BUSINESS_APPROVAL_DENIED": "Only the business owner can change business approval.",
+    "APPROVAL_CANNOT_BE_REVOKED": "An approval cannot be revoked after it has been given.",
+    "LOCKED": "This transition is fully approved and can no longer be edited or deleted."
   },
   "UNIT": {
     "ALREADY_EXISTS": "A unit with this name already exists.",

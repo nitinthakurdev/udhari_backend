@@ -51,6 +51,8 @@ export type ITransitionCreatePayload = Pick<
 
 export type ITransitionCreateData = ITransitionCreatePayload & {
   created_by: number;
+  approved_by_user: boolean;
+  approved_by_business: boolean;
 };
 
 export type ITransitionUpdatePayload = Partial<
@@ -83,6 +85,7 @@ export type ITransitionPublic = Pick<
   | "approved_by_user"
   | "approved_by_business"
   | "comment"
+  | "created_by"
   | "created_at"
   | "updated_at"
 > & {

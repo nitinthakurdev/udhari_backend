@@ -95,6 +95,9 @@ export const createTransition = AsyncHandler(async (req, res): Promise<void> => 
 
   const transition = await createTransitionService({
     ...data,
+    status: "pending",
+    approved_by_user: access.isUser,
+    approved_by_business: access.isBusinessOwner,
     created_by: req.currentUser.id,
   });
 
@@ -118,6 +121,10 @@ export const updateTransition = AsyncHandler(async (req, res): Promise<void> => 
     throw new NotFoundError(errorMessages.TRANSITION.NOT_FOUND);
   }
 
+  if (currentTransition.approved_by_user && currentTransition.approved_by_business) {
+    throw new ForbiddenError(errorMessages.TRANSITION.LOCKED);
+  }
+
   const access = await checkTransitionAccess(
     currentTransition.user_id,
     currentTransition.business_id,
@@ -130,6 +137,9 @@ export const updateTransition = AsyncHandler(async (req, res): Promise<void> => 
   if (data.approved_by_business !== undefined && !access.isBusinessOwner) {
     throw new ForbiddenError(errorMessages.TRANSITION.BUSINESS_APPROVAL_DENIED);
   }
+  if (data.approved_by_user === false || data.approved_by_business === false) {
+    throw new ForbiddenError(errorMessages.TRANSITION.APPROVAL_CANNOT_BE_REVOKED);
+  }
 
   if (
     data.unit_id !== undefined &&
@@ -138,8 +148,11 @@ export const updateTransition = AsyncHandler(async (req, res): Promise<void> => 
     throw new NotFoundError(errorMessages.TRANSITION.UNIT_NOT_FOUND);
   }
 
+  const approvedByUser = data.approved_by_user ?? currentTransition.approved_by_user;
+  const approvedByBusiness = data.approved_by_business ?? currentTransition.approved_by_business;
   const transition = await updateTransitionByUuid(uuid, req.currentUser.id, {
     ...data,
+    status: approvedByUser && approvedByBusiness ? "approved" : "pending",
     updated_by: req.currentUser.id,
   });
 
@@ -157,7 +170,17 @@ export const deleteTransition = AsyncHandler(async (req, res): Promise<void> => 
     throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
   }
 
-  const deleted = await deleteTransitionByUuid(req.params["uuid"] as string, req.currentUser.id);
+  const uuid = req.params["uuid"] as string;
+  const currentTransition = await findTransitionByUuid(uuid, req.currentUser.id);
+
+  if (!currentTransition) {
+    throw new NotFoundError(errorMessages.TRANSITION.NOT_FOUND);
+  }
+  if (currentTransition.approved_by_user && currentTransition.approved_by_business) {
+    throw new ForbiddenError(errorMessages.TRANSITION.LOCKED);
+  }
+
+  const deleted = await deleteTransitionByUuid(uuid, req.currentUser.id);
 
   if (!deleted) {
     throw new NotFoundError(errorMessages.TRANSITION.NOT_FOUND);

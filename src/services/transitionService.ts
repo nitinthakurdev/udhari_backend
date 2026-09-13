@@ -26,6 +26,7 @@ const transitionAttributes = [
   "approved_by_user",
   "approved_by_business",
   "comment",
+  "created_by",
   "created_at",
   "updated_at",
 ];
@@ -43,6 +44,7 @@ const toPublicTransition = (transition: ITransitionSchema): ITransitionPublic =>
   approved_by_user: transition.approved_by_user,
   approved_by_business: transition.approved_by_business,
   comment: transition.comment,
+  created_by: transition.created_by,
   created_at: transition.created_at,
   updated_at: transition.updated_at,
 });
