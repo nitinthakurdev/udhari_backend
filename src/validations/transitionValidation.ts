@@ -57,28 +57,68 @@ const uuidParams = z.strictObject({
   }),
 });
 
+const listQuery = z
+  .strictObject({
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().min(1).max(50).default(20),
+    view: z.enum(["all", "unpaid", "cancelled"]).default("all"),
+    party_type: z.enum(["user", "business"]).optional(),
+    party_id: z.coerce.number().int().positive().optional(),
+  })
+  .refine((query) => (query.party_type === undefined) === (query.party_id === undefined), {
+    error: "party_type and party_id must be provided together.",
+    path: ["party_id"],
+  });
+
 const createPayload = z
   .strictObject(
     {
-    customer_user_id: fields.customer_user_id.optional(),
-    customer_business_id: fields.customer_business_id.optional(),
-    business_id: fields.business_id,
-    unit_id: fields.unit_id,
-    product_name: fields.product_name,
-    product_qty: fields.product_qty.optional(),
-    product_unit_price: fields.product_unit_price,
-    total_price: fields.total_price,
+      customer_user_id: fields.customer_user_id.optional(),
+      customer_business_id: fields.customer_business_id.optional(),
+      business_id: fields.business_id,
+      unit_id: fields.unit_id,
+      product_name: fields.product_name,
+      product_qty: fields.product_qty.optional(),
+      product_unit_price: fields.product_unit_price,
+      total_price: fields.total_price,
       customer_business_uuid: z.uuid({ error: messages.CUSTOMER_BUSINESS_UUID_INVALID }).optional(),
       balance_type: fields.balance_type.optional(),
       comment: fields.comment.optional(),
     },
     { error: messages.UNKNOWN_FIELDS },
   )
-  .refine(
-    (data) =>
-      data.customer_business_uuid === undefined || data.balance_type !== undefined,
-    { error: messages.BALANCE_TYPE_REQUIRED, path: ["balance_type"] },
-  );
+  .refine((data) => data.customer_business_uuid === undefined || data.balance_type !== undefined, {
+    error: messages.BALANCE_TYPE_REQUIRED,
+    path: ["balance_type"],
+  });
+
+const batchItem = z.strictObject(
+  {
+    unit_id: fields.unit_id,
+    product_name: fields.product_name,
+    product_qty: fields.product_qty.optional(),
+    product_unit_price: fields.product_unit_price,
+    total_price: fields.total_price,
+    comment: fields.comment.optional(),
+  },
+  { error: messages.UNKNOWN_FIELDS },
+);
+
+const batchCreatePayload = z
+  .strictObject(
+    {
+      customer_user_id: fields.customer_user_id.optional(),
+      business_id: fields.business_id,
+      customer_business_uuid: z.uuid({ error: messages.CUSTOMER_BUSINESS_UUID_INVALID }).optional(),
+      balance_type: fields.balance_type.optional(),
+      items: z.array(batchItem).min(1).max(50),
+    },
+    { error: messages.UNKNOWN_FIELDS },
+  )
+  .refine((data) => data.customer_business_uuid === undefined || data.balance_type !== undefined, {
+    error: messages.BALANCE_TYPE_REQUIRED,
+    path: ["balance_type"],
+  });
 
 const updatePayload = z
   .strictObject(
@@ -110,7 +150,17 @@ export const validateUpdateTransition = validateRequest({
   errorMessage: messages.UPDATE_VALIDATION_FAILED,
 });
 
+export const validateBatchCreateTransition = validateRequest({
+  body: batchCreatePayload,
+  errorMessage: messages.CREATE_VALIDATION_FAILED,
+});
+
 export const validateTransitionUuid = validateRequest({
   params: uuidParams,
   errorMessage: messages.UUID_VALIDATION_FAILED,
+});
+
+export const validateListTransitions = validateRequest({
+  query: listQuery,
+  errorMessage: "Invalid transition list query.",
 });

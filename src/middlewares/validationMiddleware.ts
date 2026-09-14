@@ -3,7 +3,7 @@ import { BadRequestError } from "hal-response";
 import type * as z from "zod";
 
 interface ValidationDetails {
-  location: "body" | "params";
+  location: "body" | "params" | "query";
   field: string;
   message: string;
 }
@@ -11,6 +11,7 @@ interface ValidationDetails {
 interface RequestValidationConfig {
   body?: z.ZodType<Record<string, unknown>>;
   params?: z.ZodType<Record<string, string>>;
+  query?: z.ZodType<Record<string, unknown>>;
   errorMessage: string;
 }
 
@@ -18,6 +19,7 @@ export const validateRequest = (config: RequestValidationConfig): RequestHandler
   return async (req, _res, next): Promise<void> => {
     const bodyResult = config.body ? await config.body.safeParseAsync(req.body) : undefined;
     const paramsResult = config.params ? await config.params.safeParseAsync(req.params) : undefined;
+    const queryResult = config.query ? await config.query.safeParseAsync(req.query) : undefined;
 
     const details: ValidationDetails[] = [];
 
@@ -35,6 +37,16 @@ export const validateRequest = (config: RequestValidationConfig): RequestHandler
       details.push(
         ...paramsResult.error.issues.map((issue) => ({
           location: "params" as const,
+          field: issue.path.join("."),
+          message: issue.message,
+        })),
+      );
+    }
+
+    if (queryResult && !queryResult.success) {
+      details.push(
+        ...queryResult.error.issues.map((issue) => ({
+          location: "query" as const,
           field: issue.path.join("."),
           message: issue.message,
         })),

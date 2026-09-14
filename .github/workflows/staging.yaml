@@ -26,7 +26,11 @@ jobs:
 
             cd /root/udhari
 
-            docker compose up -d --build --force-recreate udhari-backend-staging
+            docker compose build udhari-backend-staging
+
+            docker compose run --rm -e NODE_ENV=staging udhari-backend-staging npm run db:migrate:staging
+
+            docker compose up -d --force-recreate udhari-backend-staging
 
             docker compose ps
             docker ps

@@ -1,3 +1,4 @@
+import { sequelize } from "@/config/dbConfig";
 import { businessModel } from "@/models/businessModel";
 import { customerManagementModel } from "@/models/customerManagement";
 import { transitionsModel } from "@/models/transitionModel";
@@ -6,7 +7,10 @@ import { unitModel } from "@/models/unitModel";
 import { findAdminUserIds } from "@/services/unitService";
 import type {
   ITransitionAccess,
+  ITransitionBalanceSummary,
   ITransitionCreateData,
+  ITransitionListOptions,
+  ITransitionPage,
   ITransitionPublic,
   ITransitionSchema,
   ITransitionUpdateData,
@@ -67,6 +71,91 @@ const getAccessibleWhere = (currentUserId: number): WhereOptions<ITransitionSche
   return {
     [Op.or]: [{ customer_user_id: currentUserId }, { business_user_id: currentUserId }],
   };
+};
+
+const getViewWhere = (view: ITransitionListOptions["view"]): WhereOptions<ITransitionSchema> => {
+  if (view === "unpaid") {
+    return { request_status: "approved", payment_status: "unpaid" };
+  }
+  if (view === "cancelled") return { request_status: "cancelled" };
+  return {};
+};
+
+const getPartyWhere = (
+  options: ITransitionListOptions,
+  activeBusinessId?: number,
+): WhereOptions<ITransitionSchema> => {
+  if (!options.partyType || options.partyId === undefined) return {};
+  if (options.partyType === "user") {
+    return {
+      customer_user_id: options.partyId,
+      customer_business_id: null,
+    };
+  }
+  if (activeBusinessId === undefined) return { business_id: options.partyId };
+  return {
+    [Op.or]: [
+      {
+        customer_business_id: activeBusinessId,
+        business_id: options.partyId,
+      },
+      {
+        customer_business_id: options.partyId,
+        business_id: activeBusinessId,
+      },
+    ],
+  };
+};
+
+const toPaginationResult = (
+  rows: ITransitionSchema[],
+  count: number,
+  currentUserId: number,
+): ITransitionPage => ({
+  items: rows.map((transition) => toPublicTransition(transition, currentUserId)),
+  total: count,
+});
+
+const summarizeTransitions = (
+  transitions: ITransitionSchema[],
+  currentUserId: number,
+): ITransitionBalanceSummary => {
+  const summary: ITransitionBalanceSummary = {
+    payable: 0,
+    receivable: 0,
+    parties: [],
+  };
+  const grouped = new Map<string, ITransitionBalanceSummary["parties"][number]>();
+
+  transitions.forEach((transition) => {
+    const accountType =
+      transition.customer_user_id === currentUserId
+        ? transition.balance_type
+        : inverseBalanceType(transition.balance_type);
+    const currentIsCustomer = transition.customer_user_id === currentUserId;
+    const partyType =
+      transition.customer_business_id === null && !currentIsCustomer ? "user" : "business";
+    const partyId =
+      partyType === "user"
+        ? transition.customer_user_id
+        : currentIsCustomer
+          ? transition.business_id
+          : (transition.customer_business_id ?? transition.business_id);
+    const amount = Number(transition.total_price);
+    const key = `${partyType}:${String(partyId)}:${accountType}`;
+    const existing = grouped.get(key);
+
+    summary[accountType] += amount;
+    grouped.set(key, {
+      party_type: partyType,
+      party_id: partyId,
+      account_type: accountType,
+      amount: (existing?.amount ?? 0) + amount,
+    });
+  });
+
+  summary.parties = [...grouped.values()];
+  return summary;
 };
 
 export const checkTransitionAccess = async (
@@ -183,21 +272,56 @@ export const createTransition = async (data: ITransitionCreateData): Promise<ITr
   return toPublicTransition(transition.dataValues, data.created_by);
 };
 
-export const findTransitions = async (currentUserId: number): Promise<ITransitionPublic[]> => {
-  const where = getAccessibleWhere(currentUserId);
-  const transitions = await transitionsModel.findAll({
-    where,
-    attributes: transitionAttributes,
-    order: [["created_at", "DESC"]],
+export const createTransitions = async (
+  data: ITransitionCreateData[],
+): Promise<ITransitionPublic[]> =>
+  sequelize.transaction(async (transaction) => {
+    const transitions = await transitionsModel.bulkCreate(data, {
+      returning: true,
+      transaction,
+    });
+    return transitions.map((transition) =>
+      toPublicTransition(transition.dataValues, transition.created_by ?? 0),
+    );
   });
 
-  return transitions.map((transition) => toPublicTransition(transition.dataValues, currentUserId));
+export const findTransitions = async (
+  currentUserId: number,
+  options: ITransitionListOptions,
+): Promise<ITransitionPage> => {
+  const { rows, count } = await transitionsModel.findAndCountAll({
+    where: {
+      [Op.and]: [
+        getAccessibleWhere(currentUserId),
+        getViewWhere(options.view),
+        getPartyWhere(options),
+      ],
+    },
+    attributes: transitionAttributes,
+    ...(options.paginated
+      ? {
+          limit: options.limit,
+          offset: (options.page - 1) * options.limit,
+        }
+      : {}),
+    order: [
+      ["created_at", "DESC"],
+      ["id", "DESC"],
+    ],
+  });
+
+  return toPaginationResult(
+    rows.map((transition) => transition.dataValues),
+    count,
+    currentUserId,
+  );
 };
 
 export const findTransitionsForBusiness = async (
   businessUuid: string,
   businessOwnerId: number,
-): Promise<ITransitionPublic[] | undefined> => {
+  options: ITransitionListOptions,
+): Promise<ITransitionPage | undefined> => {
   const business = await businessModel.findOne({
     where: { uuid: businessUuid, created_by: businessOwnerId },
     attributes: ["id"],
@@ -205,16 +329,89 @@ export const findTransitionsForBusiness = async (
 
   if (!business) return undefined;
 
-  const transitions = await transitionsModel.findAll({
+  const { rows, count } = await transitionsModel.findAndCountAll({
     where: {
-      [Op.or]: [{ business_id: business.id }, { customer_business_id: business.id }],
+      [Op.and]: [
+        {
+          [Op.or]: [{ business_id: business.id }, { customer_business_id: business.id }],
+        },
+        getViewWhere(options.view),
+        getPartyWhere(options, business.id),
+      ],
     },
     attributes: transitionAttributes,
-    order: [["created_at", "DESC"]],
+    ...(options.paginated
+      ? {
+          limit: options.limit,
+          offset: (options.page - 1) * options.limit,
+        }
+      : {}),
+    order: [
+      ["created_at", "DESC"],
+      ["id", "DESC"],
+    ],
   });
 
-  return transitions.map((transition) =>
-    toPublicTransition(transition.dataValues, businessOwnerId),
+  return toPaginationResult(
+    rows.map((transition) => transition.dataValues),
+    count,
+    businessOwnerId,
+  );
+};
+
+export const getTransitionBalanceSummary = async (
+  currentUserId: number,
+): Promise<ITransitionBalanceSummary> => {
+  const transitions = await transitionsModel.findAll({
+    where: {
+      [Op.and]: [
+        getAccessibleWhere(currentUserId),
+        { request_status: "approved", payment_status: "unpaid" },
+      ],
+    },
+    attributes: [
+      "customer_user_id",
+      "customer_business_id",
+      "business_id",
+      "balance_type",
+      "total_price",
+    ],
+  });
+
+  return summarizeTransitions(
+    transitions.map((transition) => transition.dataValues),
+    currentUserId,
+  );
+};
+
+export const getTransitionBalanceSummaryForBusiness = async (
+  businessUuid: string,
+  businessOwnerId: number,
+): Promise<ITransitionBalanceSummary | undefined> => {
+  const business = await businessModel.findOne({
+    where: { uuid: businessUuid, created_by: businessOwnerId },
+    attributes: ["id"],
+  });
+  if (!business) return undefined;
+
+  const transitions = await transitionsModel.findAll({
+    where: {
+      request_status: "approved",
+      payment_status: "unpaid",
+      [Op.or]: [{ business_id: business.id }, { customer_business_id: business.id }],
+    },
+    attributes: [
+      "customer_user_id",
+      "customer_business_id",
+      "business_id",
+      "balance_type",
+      "total_price",
+    ],
+  });
+
+  return summarizeTransitions(
+    transitions.map((transition) => transition.dataValues),
+    businessOwnerId,
   );
 };
 

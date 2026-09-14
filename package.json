@@ -4,10 +4,10 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "npm run db:migrate:development && tsx watch src/index.ts",
     "build": "tsc && tsc-alias && mkdir -p dist/templates && cp -R src/templates/. dist/templates/",
-    "start": "pm2 start node dist/index.js --name udhari-prod-backend",
-    "start:stg": "pm2 start node dist/index.js --name udhari-stg-backend",
+    "start": "npm run db:migrate:production && pm2 start node dist/index.js --name udhari-prod-backend",
+    "start:stg": "npm run db:migrate:staging && pm2 start node dist/index.js --name udhari-stg-backend",
     "restart:stg": "pm2 restart udhari-stg-backend",
     "restart": "pm2 restart udhari-prod-backend",
     "typecheck": "tsc --noEmit",
@@ -17,6 +17,9 @@
     "format:check": "prettier --check .",
     "check": "npm run typecheck && npm run lint && npm run format:check",
     "db:migrate": "sequelize-cli db:migrate",
+    "db:migrate:development": "sequelize-cli db:migrate --env development",
+    "db:migrate:staging": "sequelize-cli db:migrate --env staging",
+    "db:migrate:production": "sequelize-cli db:migrate --env production",
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "db:seed": "sequelize-cli db:seed:all",
     "db:seed:undo": "sequelize-cli db:seed:undo:all"

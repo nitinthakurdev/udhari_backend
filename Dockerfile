@@ -38,5 +38,4 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 5000
 
-CMD ["node", "dist/index.js"]
-
+CMD ["sh", "-c", "npm run db:migrate -- --env \"$NODE_ENV\" && exec node dist/index.js"]

@@ -56,10 +56,7 @@ export type ITransitionCreatePayload = Pick<
   "business_id" | "unit_id" | "product_name" | "product_unit_price" | "total_price"
 > &
   Partial<
-    Pick<
-      ITransitionSchema,
-      "customer_user_id" | "customer_business_id" | "product_qty" | "comment"
-    >
+    Pick<ITransitionSchema, "customer_user_id" | "customer_business_id" | "product_qty" | "comment">
   > & {
     customer_business_uuid?: string;
     balance_type?: TransitionBalanceType;
@@ -73,6 +70,19 @@ export type ITransitionCreateData = ITransitionCreatePayload & {
   payment_status: TransitionPaymentStatus;
   balance_type: TransitionBalanceType;
   created_by: number;
+};
+
+export type ITransitionBatchItem = Pick<
+  ITransitionSchema,
+  "unit_id" | "product_name" | "product_unit_price" | "total_price"
+> &
+  Partial<Pick<ITransitionSchema, "product_qty" | "comment">>;
+
+export type ITransitionBatchCreatePayload = Pick<
+  ITransitionCreatePayload,
+  "business_id" | "customer_user_id" | "customer_business_uuid" | "balance_type"
+> & {
+  items: ITransitionBatchItem[];
 };
 
 export type ITransitionUpdatePayload = Partial<
@@ -124,4 +134,31 @@ export interface ITransitionAccess {
   canAccess: boolean;
   isCustomer: boolean;
   isBusinessOwner: boolean;
+}
+
+export interface ITransitionListOptions {
+  page: number;
+  limit: number;
+  paginated: boolean;
+  view: "all" | "unpaid" | "cancelled";
+  partyType?: "user" | "business";
+  partyId?: number;
+}
+
+export interface ITransitionPage {
+  items: ITransitionPublic[];
+  total: number;
+}
+
+export interface ITransitionBalanceParty {
+  party_type: "user" | "business";
+  party_id: number;
+  account_type: TransitionBalanceType;
+  amount: number;
+}
+
+export interface ITransitionBalanceSummary {
+  payable: number;
+  receivable: number;
+  parties: ITransitionBalanceParty[];
 }

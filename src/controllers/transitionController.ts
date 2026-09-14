@@ -2,13 +2,21 @@ import {
   checkBusinessTransitionAccess,
   checkTransitionAccess,
   createTransition as createTransitionService,
+  createTransitions as createTransitionsService,
   findTransitionByUuid,
   findTransitions,
   findTransitionsForBusiness,
+  getTransitionBalanceSummary,
+  getTransitionBalanceSummaryForBusiness,
   isUnitAvailableForBusiness,
   updateTransitionByUuid,
 } from "@/services/transitionService";
-import type { ITransitionCreatePayload, ITransitionUpdatePayload } from "@/types/transitionTypes";
+import type {
+  ITransitionBatchCreatePayload,
+  ITransitionCreatePayload,
+  ITransitionListOptions,
+  ITransitionUpdatePayload,
+} from "@/types/transitionTypes";
 import {
   AsyncHandler,
   ForbiddenError,
@@ -22,15 +30,40 @@ import successMessages from "../../successMessages.json";
 
 const response = new HalSuccess();
 
+const getListOptions = (query: Record<string, unknown>): ITransitionListOptions => ({
+  page: Number(query["page"] ?? 1),
+  limit: Number(query["limit"] ?? 20),
+  paginated: query["page"] !== undefined || query["limit"] !== undefined,
+  view: (query["view"] as ITransitionListOptions["view"] | undefined) ?? "all",
+  ...(query["party_type"] ? { partyType: query["party_type"] as "user" | "business" } : {}),
+  ...(query["party_id"] ? { partyId: Number(query["party_id"]) } : {}),
+});
+
+const getPaginationMeta = (page: number, limit: number, total: number) => {
+  const totalPages = Math.ceil(total / limit);
+  return {
+    page,
+    limit,
+    total,
+    total_pages: totalPages,
+    has_next_page: page < totalPages,
+    has_previous_page: page > 1,
+  };
+};
+
 export const listTransitions = AsyncHandler(async (req, res): Promise<void> => {
   if (!req.currentUser) {
     throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
   }
 
-  const transitions = await findTransitions(req.currentUser.id);
-  res
-    .status(StatusCodes.OK)
-    .json(response.ok(transitions, { message: successMessages.TRANSITION.LIST }));
+  const options = getListOptions(req.query);
+  const transitions = await findTransitions(req.currentUser.id, options);
+  res.status(StatusCodes.OK).json(
+    response.ok(transitions.items, {
+      message: successMessages.TRANSITION.LIST,
+      meta: { pagination: getPaginationMeta(options.page, options.limit, transitions.total) },
+    }),
+  );
 });
 
 export const listBusinessTransitions = AsyncHandler(async (req, res): Promise<void> => {
@@ -38,18 +71,45 @@ export const listBusinessTransitions = AsyncHandler(async (req, res): Promise<vo
     throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
   }
 
+  const options = getListOptions(req.query);
   const transitions = await findTransitionsForBusiness(
     req.params["uuid"] as string,
     req.currentUser.id,
+    options,
   );
 
   if (!transitions) {
     throw new NotFoundError(errorMessages.TRANSITION.BUSINESS_NOT_FOUND);
   }
 
-  res
-    .status(StatusCodes.OK)
-    .json(response.ok(transitions, { message: successMessages.TRANSITION.LIST }));
+  res.status(StatusCodes.OK).json(
+    response.ok(transitions.items, {
+      message: successMessages.TRANSITION.LIST,
+      meta: { pagination: getPaginationMeta(options.page, options.limit, transitions.total) },
+    }),
+  );
+});
+
+export const transitionSummary = AsyncHandler(async (req, res): Promise<void> => {
+  if (!req.currentUser) {
+    throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
+  }
+  const summary = await getTransitionBalanceSummary(req.currentUser.id);
+  res.status(StatusCodes.OK).json(response.ok(summary));
+});
+
+export const businessTransitionSummary = AsyncHandler(async (req, res): Promise<void> => {
+  if (!req.currentUser) {
+    throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
+  }
+  const summary = await getTransitionBalanceSummaryForBusiness(
+    req.params["uuid"] as string,
+    req.currentUser.id,
+  );
+  if (!summary) {
+    throw new NotFoundError(errorMessages.TRANSITION.BUSINESS_NOT_FOUND);
+  }
+  res.status(StatusCodes.OK).json(response.ok(summary));
 });
 
 export const getTransition = AsyncHandler(async (req, res): Promise<void> => {
@@ -75,8 +135,7 @@ export const createTransition = AsyncHandler(async (req, res): Promise<void> => 
 
   const data = req.body as ITransitionCreatePayload;
   const roleSlug = req.currentUser.user_role?.slug;
-  const sourceBusinessUuid =
-    roleSlug === "business" ? data.customer_business_uuid : undefined;
+  const sourceBusinessUuid = roleSlug === "business" ? data.customer_business_uuid : undefined;
   const isBusinessToBusiness = Boolean(sourceBusinessUuid);
   const customerUserId = isBusinessToBusiness
     ? req.currentUser.id
@@ -89,11 +148,7 @@ export const createTransition = AsyncHandler(async (req, res): Promise<void> => 
   }
 
   const businessAccess = sourceBusinessUuid
-    ? await checkBusinessTransitionAccess(
-        sourceBusinessUuid,
-        data.business_id,
-        req.currentUser.id,
-      )
+    ? await checkBusinessTransitionAccess(sourceBusinessUuid, data.business_id, req.currentUser.id)
     : null;
   const access = !isBusinessToBusiness
     ? await checkTransitionAccess(customerUserId, data.business_id, req.currentUser.id)
@@ -102,7 +157,10 @@ export const createTransition = AsyncHandler(async (req, res): Promise<void> => 
   if (access && !access.customerExists) {
     throw new NotFoundError(errorMessages.TRANSITION.USER_NOT_FOUND);
   }
-  if ((access && !access.businessExists) || (businessAccess && !businessAccess.targetBusinessExists)) {
+  if (
+    (access && !access.businessExists) ||
+    (businessAccess && !businessAccess.targetBusinessExists)
+  ) {
     throw new NotFoundError(errorMessages.TRANSITION.BUSINESS_NOT_FOUND);
   }
   if (!(access?.connectionExists ?? businessAccess?.connectionExists)) {
@@ -140,6 +198,84 @@ export const createTransition = AsyncHandler(async (req, res): Promise<void> => 
 
   res.status(StatusCodes.CREATED).json(
     response.created(transition, {
+      message: successMessages.TRANSITION.CREATE,
+    }),
+  );
+});
+
+export const createTransitions = AsyncHandler(async (req, res): Promise<void> => {
+  if (!req.currentUser) {
+    throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
+  }
+
+  const currentUserId = req.currentUser.id;
+  const data = req.body as ITransitionBatchCreatePayload;
+  const roleSlug = req.currentUser.user_role?.slug;
+  const sourceBusinessUuid = roleSlug === "business" ? data.customer_business_uuid : undefined;
+  const isBusinessToBusiness = Boolean(sourceBusinessUuid);
+  const customerUserId = isBusinessToBusiness
+    ? currentUserId
+    : roleSlug === "user"
+      ? currentUserId
+      : data.customer_user_id;
+
+  if (!customerUserId) {
+    throw new NotFoundError(errorMessages.TRANSITION.USER_NOT_FOUND);
+  }
+
+  const businessAccess = sourceBusinessUuid
+    ? await checkBusinessTransitionAccess(sourceBusinessUuid, data.business_id, currentUserId)
+    : null;
+  const access = !isBusinessToBusiness
+    ? await checkTransitionAccess(customerUserId, data.business_id, currentUserId)
+    : null;
+
+  if (access && !access.customerExists) {
+    throw new NotFoundError(errorMessages.TRANSITION.USER_NOT_FOUND);
+  }
+  if (
+    (access && !access.businessExists) ||
+    (businessAccess && !businessAccess.targetBusinessExists)
+  ) {
+    throw new NotFoundError(errorMessages.TRANSITION.BUSINESS_NOT_FOUND);
+  }
+  if (!(access?.connectionExists ?? businessAccess?.connectionExists)) {
+    throw new NotFoundError(errorMessages.TRANSITION.CONNECTION_NOT_FOUND);
+  }
+  if (access && !access.canAccess) {
+    throw new ForbiddenError(errorMessages.TRANSITION.ACCESS_DENIED);
+  }
+
+  const businessUserId = access?.businessUserId ?? businessAccess?.targetOwnerId;
+  if (!businessUserId) {
+    throw new NotFoundError(errorMessages.TRANSITION.BUSINESS_NOT_FOUND);
+  }
+
+  const unitBusinessId = businessAccess?.sourceBusinessId ?? data.business_id;
+  const unitIds = [...new Set(data.items.map((item) => item.unit_id))];
+  const unitChecks = await Promise.all(
+    unitIds.map((unitId) => isUnitAvailableForBusiness(unitId, unitBusinessId)),
+  );
+  if (unitChecks.some((available) => !available)) {
+    throw new NotFoundError(errorMessages.TRANSITION.UNIT_NOT_FOUND);
+  }
+
+  const transitions = await createTransitionsService(
+    data.items.map((item) => ({
+      ...item,
+      customer_user_id: customerUserId,
+      customer_business_id: businessAccess?.sourceBusinessId ?? null,
+      business_id: data.business_id,
+      business_user_id: businessUserId,
+      request_status: "pending",
+      payment_status: "unpaid",
+      balance_type: isBusinessToBusiness ? (data.balance_type ?? "payable") : "payable",
+      created_by: currentUserId,
+    })),
+  );
+
+  res.status(StatusCodes.CREATED).json(
+    response.created(transitions, {
       message: successMessages.TRANSITION.CREATE,
     }),
   );
