@@ -60,6 +60,7 @@ export const signupValidationPayload = z.strictObject(
       .regex(/[A-Z]/, { error: userValidationMessages.PASSWORD_UPPERCASE })
       .regex(/\d/, { error: userValidationMessages.PASSWORD_NUMBER })
       .regex(/[^a-zA-Z0-9]/, { error: userValidationMessages.PASSWORD_SPECIAL_CHARACTER }),
+    role_slug: z.enum(["user", "business"]).optional().default("user"),
   },
   { error: userValidationMessages.UNKNOWN_FIELDS },
 );

@@ -160,16 +160,21 @@ export const listUsers = AsyncHandler(async (_req, res): Promise<void> => {
  */
 export const signup = AsyncHandler(async (req, res): Promise<void> => {
   const data = req.body as IUserCreatePayload;
+  const { role_slug: roleSlug = "user", ...userData } = data;
 
-  data.username = usernameModifier(data.username);
+  userData.username = usernameModifier(userData.username);
 
-  const conflicts = await findUserByEmailOrUsername(data.email, data.username, data.phone);
+  const conflicts = await findUserByEmailOrUsername(
+    userData.email,
+    userData.username,
+    userData.phone,
+  );
   assertUserFieldsAreUnique(conflicts);
 
-  const hashedPassword = await bcrypt.hash(data.password, 10);
-  const defaultRole = await findRoleBySlag("user");
+  const hashedPassword = await bcrypt.hash(userData.password, 10);
+  const selectedRole = await findRoleBySlag(roleSlug);
 
-  if (!defaultRole) {
+  if (!selectedRole) {
     throw new InternalServerError(errorMessages.USER.DEFAULT_ROLE_NOT_FOUND);
   }
 
@@ -180,9 +185,9 @@ export const signup = AsyncHandler(async (req, res): Promise<void> => {
   const user = await sequelize.transaction(async (transaction) => {
     const createdUser = await createUserService(
       {
-        ...data,
+        ...userData,
         password: hashedPassword,
-        role_id: defaultRole.id,
+        role_id: selectedRole.id,
         verification_token: verificationToken,
         verification_token_expiry: verificationTokenExpiry,
       },

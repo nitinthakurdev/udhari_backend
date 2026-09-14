@@ -66,6 +66,7 @@ export interface IUserCreatePayload {
   phone: string;
   dial_code?: string | null;
   password: string;
+  role_slug?: "user" | "business";
 }
 
 export interface IUserUpdateSchema {
@@ -93,7 +94,7 @@ export interface IUserUpdateSchema {
   deleted_at?: Date | null;
 }
 
-export interface IUserCreateData extends IUserCreatePayload {
+export interface IUserCreateData extends Omit<IUserCreatePayload, "role_slug"> {
   role_id: number;
   verification_token?: string | null;
   verification_token_expiry?: Date | null;
