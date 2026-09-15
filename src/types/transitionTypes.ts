@@ -3,8 +3,8 @@ import type { IUnitSchema } from "@/types/unitTypes";
 
 export type TransitionRequestStatus =
   "pending" | "approved" | "rejected" | "not_available" | "cancelled";
-export type TransitionPaymentStatus = "paid" | "unpaid";
 export type TransitionBalanceType = "payable" | "receivable";
+export type TransitionPaymentStatus = "unpaid" | "partial" | "paid";
 
 export interface ITransitionSchema {
   id: number;
@@ -19,7 +19,6 @@ export interface ITransitionSchema {
   product_unit_price: number | string;
   total_price: number | string;
   request_status: TransitionRequestStatus;
-  payment_status: TransitionPaymentStatus;
   balance_type: TransitionBalanceType;
   comment: string | null;
   created_by: number | null;
@@ -38,7 +37,6 @@ export type TransitionCreationSchema = Optional<
   | "customer_business_id"
   | "total_price"
   | "request_status"
-  | "payment_status"
   | "balance_type"
   | "comment"
   | "created_by"
@@ -68,7 +66,6 @@ export type ITransitionCreateData = ITransitionCreatePayload & {
   customer_business_id: number | null;
   business_user_id: number;
   request_status: "pending";
-  payment_status: TransitionPaymentStatus;
   balance_type: TransitionBalanceType;
   created_by: number;
 };
@@ -100,8 +97,7 @@ export type ITransitionUpdatePayload = Partial<
   >
 >;
 
-export type ITransitionUpdateData = ITransitionUpdatePayload &
-  Partial<Pick<ITransitionSchema, "payment_status">> & { updated_by: number };
+export type ITransitionUpdateData = ITransitionUpdatePayload & { updated_by: number };
 
 export type ITransitionPublic = Pick<
   ITransitionSchema,
@@ -115,7 +111,6 @@ export type ITransitionPublic = Pick<
   | "product_qty"
   | "product_unit_price"
   | "request_status"
-  | "payment_status"
   | "balance_type"
   | "comment"
   | "created_by"
@@ -125,6 +120,9 @@ export type ITransitionPublic = Pick<
 > & {
   product_unit_price: number;
   total_price: number;
+  paid_amount: number;
+  outstanding_amount: number;
+  payment_status: TransitionPaymentStatus;
   account_type: TransitionBalanceType;
   unit: Pick<IUnitSchema, "name" | "code"> | null;
 };

@@ -7,7 +7,6 @@ import {
   listTransitions,
   transitionSummary,
   businessTransitionSummary,
-  receiveTransitionPayment,
   updateTransition,
 } from "@/controllers/transitionController";
 import {
@@ -34,7 +33,6 @@ export const transitionRoutes = (): Router => {
   routes.route("/details/:uuid").get(validateTransitionUuid, getTransition);
   routes.route("/update/:uuid").patch(validateUpdateTransition, updateTransition);
   routes.route("/cancel/:uuid").patch(validateTransitionUuid, cancelTransition);
-  routes.route("/payment-received/:uuid").patch(validateTransitionUuid, receiveTransitionPayment);
 
   return routes;
 };

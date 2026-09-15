@@ -53,11 +53,6 @@ const transitionsModel = sequelize.define<ITransitionModel>(
       allowNull: false,
       defaultValue: "pending",
     },
-    payment_status: {
-      type: DataTypes.ENUM("paid", "unpaid"),
-      allowNull: false,
-      defaultValue: "unpaid",
-    },
     balance_type: {
       type: DataTypes.ENUM("payable", "receivable"),
       allowNull: false,

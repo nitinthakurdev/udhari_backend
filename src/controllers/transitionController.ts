@@ -198,7 +198,6 @@ export const createTransition = AsyncHandler(async (req, res): Promise<void> => 
     customer_business_id: businessAccess?.sourceBusinessId ?? null,
     business_user_id: businessUserId,
     request_status: "pending",
-    payment_status: "unpaid",
     balance_type: isBusinessToBusiness ? (data.balance_type ?? "payable") : "payable",
     created_by: req.currentUser.id,
   });
@@ -282,7 +281,6 @@ export const createTransitions = AsyncHandler(async (req, res): Promise<void> =>
       business_id: data.business_id,
       business_user_id: businessUserId,
       request_status: "pending",
-      payment_status: "unpaid",
       balance_type: isBusinessToBusiness ? (data.balance_type ?? "payable") : "payable",
       created_by: currentUserId,
     })),
@@ -402,50 +400,4 @@ export const cancelTransition = AsyncHandler(async (req, res): Promise<void> => 
   res
     .status(StatusCodes.OK)
     .json(response.ok(transition, { message: successMessages.TRANSITION.CANCEL }));
-});
-
-export const receiveTransitionPayment = AsyncHandler(async (req, res): Promise<void> => {
-  if (!req.currentUser) {
-    throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
-  }
-
-  const uuid = req.params["uuid"] as string;
-  const currentTransition = await findTransitionByUuid(uuid, req.currentUser.id);
-
-  if (!currentTransition) {
-    throw new NotFoundError(errorMessages.TRANSITION.NOT_FOUND);
-  }
-  if (currentTransition.account_type !== "receivable") {
-    throw new ForbiddenError(errorMessages.TRANSITION.PAYMENT_RECEIPT_DENIED);
-  }
-  if (currentTransition.request_status !== "approved") {
-    throw new ForbiddenError(errorMessages.TRANSITION.PAYMENT_REQUIRES_APPROVAL);
-  }
-
-  const wasAlreadyPaid = currentTransition.payment_status === "paid";
-  const transition = wasAlreadyPaid
-    ? currentTransition
-    : await updateTransitionByUuid(uuid, req.currentUser.id, {
-        payment_status: "paid",
-        updated_by: req.currentUser.id,
-      });
-
-  if (!transition) {
-    throw new NotFoundError(errorMessages.TRANSITION.NOT_FOUND);
-  }
-
-  if (!wasAlreadyPaid) {
-    notifyUsers(getOtherPartyUserIds(transition, req.currentUser.id), {
-      type: "transition.payment_received",
-      title: "Payment received",
-      message: `${req.currentUser.first_name} marked the ${transition.product_name} payment as received.`,
-      data: { transition_uuid: transition.uuid },
-    });
-  }
-
-  res.status(StatusCodes.OK).json(
-    response.ok(transition, {
-      message: successMessages.TRANSITION.PAYMENT_RECEIVED,
-    }),
-  );
 });

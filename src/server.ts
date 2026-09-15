@@ -23,6 +23,7 @@ import cookieParser from "cookie-parser";
 import "./association/userAssociation";
 import "./association/customerManagementAssociation";
 import "./association/transitionAssociation";
+import "./association/billingAssociation";
 import "./association/userSubscriptionAssociation";
 import { config } from "./config/envConfig";
 import { initializeSocket } from "./socket";

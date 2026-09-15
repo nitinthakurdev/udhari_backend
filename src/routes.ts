@@ -11,6 +11,7 @@ import { transitionRoutes } from "./routes/transitionRoutes";
 import { unitRoutes } from "./routes/unitRoutes";
 import { userSubscriptionRoutes } from "./routes/userSubscriptionRoutes";
 import { paymentRoutes } from "./routes/paymentRoutes";
+import { billingRoutes } from "./routes/billingRoutes";
 import { requireActiveSubscription } from "./middlewares/subscriptionAuthorizationMiddleware";
 
 export const appRouter = (): Router => {
@@ -30,5 +31,6 @@ export const appRouter = (): Router => {
   routes.use("/subscriptions", authorization, requireAdmin, subscriptionRoutes());
   routes.use("/user-subscriptions", authorization, userSubscriptionRoutes());
   routes.use("/payments", authorization, paymentRoutes());
+  routes.use("/billings", authorization, requireActiveSubscription, billingRoutes());
   return routes;
 };

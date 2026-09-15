@@ -2,9 +2,11 @@ import { sequelize } from "@/config/dbConfig";
 import { businessModel } from "@/models/businessModel";
 import { customerManagementModel } from "@/models/customerManagement";
 import { transitionsModel } from "@/models/transitionModel";
+import { paymentReceivedModel } from "@/models/paymentReceivedModel";
 import { userModel } from "@/models/userModel";
 import { unitModel } from "@/models/unitModel";
 import { findAdminUserIds } from "@/services/unitService";
+import { addTransitionToOutstanding, ensureMonthlyBilling } from "@/services/billingService";
 import type {
   ITransitionAccess,
   ITransitionBalanceSummary,
@@ -15,9 +17,10 @@ import type {
   ITransitionSchema,
   ITransitionUpdateData,
 } from "@/types/transitionTypes";
-import { Op, type WhereOptions } from "sequelize";
+import { fn, col, literal, Op, type WhereOptions } from "sequelize";
 
 const transitionAttributes = [
+  "id",
   "uuid",
   "customer_user_id",
   "customer_business_id",
@@ -29,7 +32,6 @@ const transitionAttributes = [
   "product_unit_price",
   "total_price",
   "request_status",
-  "payment_status",
   "balance_type",
   "comment",
   "created_by",
@@ -55,6 +57,7 @@ const inverseBalanceType = (balanceType: ITransitionSchema["balance_type"]) =>
 const toPublicTransition = (
   transition: TransitionWithUnit,
   currentUserId: number,
+  paidAmount = 0,
 ): ITransitionPublic => ({
   uuid: transition.uuid,
   customer_user_id: transition.customer_user_id,
@@ -66,8 +69,11 @@ const toPublicTransition = (
   product_qty: Number(transition.product_qty),
   product_unit_price: Number(transition.product_unit_price),
   total_price: Number(transition.total_price),
+  paid_amount: paidAmount,
+  outstanding_amount: Math.max(Number(transition.total_price) - paidAmount, 0),
+  payment_status:
+    paidAmount >= Number(transition.total_price) ? "paid" : paidAmount > 0 ? "partial" : "unpaid",
   request_status: transition.request_status,
-  payment_status: transition.payment_status,
   balance_type: transition.balance_type,
   account_type:
     transition.customer_user_id === currentUserId
@@ -104,7 +110,12 @@ const getViewWhere = (
     };
   }
   if (view === "unpaid") {
-    return { request_status: "approved", payment_status: "unpaid" };
+    return {
+      request_status: "approved",
+      [Op.and]: literal(
+        `"TransitionsModel"."total_price" > COALESCE((SELECT SUM("amount_received") FROM "payments_received" WHERE "transition_id" = "TransitionsModel"."id" AND "deleted_at" IS NULL), 0)`,
+      ),
+    };
   }
   if (view === "cancelled") return { request_status: "cancelled" };
   return {};
@@ -136,18 +147,40 @@ const getPartyWhere = (
   };
 };
 
-const toPaginationResult = (
+const getPaidAmounts = async (transitionIds: number[]) => {
+  if (transitionIds.length === 0) return new Map<number, number>();
+  const rows = await paymentReceivedModel.findAll({
+    where: { transition_id: { [Op.in]: transitionIds } },
+    attributes: ["transition_id", [fn("SUM", col("amount_received")), "paid_amount"]],
+    group: ["transition_id"],
+    raw: true,
+  });
+  return new Map(
+    rows.map((row) => [
+      row.transition_id,
+      Number((row as unknown as { paid_amount: string }).paid_amount),
+    ]),
+  );
+};
+
+const toPaginationResult = async (
   rows: ITransitionSchema[],
   count: number,
   currentUserId: number,
-): ITransitionPage => ({
-  items: rows.map((transition) => toPublicTransition(transition, currentUserId)),
-  total: count,
-});
+): Promise<ITransitionPage> => {
+  const paidAmounts = await getPaidAmounts(rows.map((transition) => transition.id));
+  return {
+    items: rows.map((transition) =>
+      toPublicTransition(transition, currentUserId, paidAmounts.get(transition.id) ?? 0),
+    ),
+    total: count,
+  };
+};
 
 const summarizeTransitions = (
   transitions: ITransitionSchema[],
   currentUserId: number,
+  paidAmounts: Map<number, number>,
 ): ITransitionBalanceSummary => {
   const summary: ITransitionBalanceSummary = {
     payable: 0,
@@ -170,7 +203,10 @@ const summarizeTransitions = (
         : currentIsCustomer
           ? transition.business_id
           : (transition.customer_business_id ?? transition.business_id);
-    const amount = Number(transition.total_price);
+    const amount = Math.max(
+      Number(transition.total_price) - (paidAmounts.get(transition.id) ?? 0),
+      0,
+    );
     const key = `${partyType}:${String(partyId)}:${accountType}`;
     const existing = grouped.get(key);
 
@@ -296,10 +332,12 @@ export const isUnitAvailableForBusiness = async (
   return Boolean(unit);
 };
 
-export const createTransition = async (data: ITransitionCreateData): Promise<ITransitionPublic> => {
-  const transition = await transitionsModel.create(data);
-  return toPublicTransition(transition.dataValues, data.created_by);
-};
+export const createTransition = async (data: ITransitionCreateData): Promise<ITransitionPublic> =>
+  sequelize.transaction(async (transaction) => {
+    const transition = await transitionsModel.create(data, { transaction });
+    await ensureMonthlyBilling(data, transaction, transition.created_at);
+    return toPublicTransition(transition.dataValues, data.created_by);
+  });
 
 export const createTransitions = async (
   data: ITransitionCreateData[],
@@ -309,6 +347,13 @@ export const createTransitions = async (
       returning: true,
       transaction,
     });
+    const billingGroups = new Map<string, ITransitionCreateData>();
+    data.forEach((item) => {
+      billingGroups.set(`${String(item.customer_user_id)}:${String(item.business_id)}`, item);
+    });
+    await Promise.all(
+      [...billingGroups.values()].map((item) => ensureMonthlyBilling(item, transaction)),
+    );
     return transitions.map((transition) =>
       toPublicTransition(transition.dataValues, transition.created_by ?? 0),
     );
@@ -340,7 +385,7 @@ export const findTransitions = async (
     ],
   });
 
-  return toPaginationResult(
+  return await toPaginationResult(
     rows.map((transition) => transition.dataValues),
     count,
     currentUserId,
@@ -383,7 +428,7 @@ export const findTransitionsForBusiness = async (
     ],
   });
 
-  return toPaginationResult(
+  return await toPaginationResult(
     rows.map((transition) => transition.dataValues),
     count,
     businessOwnerId,
@@ -395,12 +440,10 @@ export const getTransitionBalanceSummary = async (
 ): Promise<ITransitionBalanceSummary> => {
   const transitions = await transitionsModel.findAll({
     where: {
-      [Op.and]: [
-        getAccessibleWhere(currentUserId),
-        { request_status: "approved", payment_status: "unpaid" },
-      ],
+      [Op.and]: [getAccessibleWhere(currentUserId), { request_status: "approved" }],
     },
     attributes: [
+      "id",
       "customer_user_id",
       "customer_business_id",
       "business_id",
@@ -409,9 +452,11 @@ export const getTransitionBalanceSummary = async (
     ],
   });
 
+  const values = transitions.map((transition) => transition.dataValues);
   return summarizeTransitions(
-    transitions.map((transition) => transition.dataValues),
+    values,
     currentUserId,
+    await getPaidAmounts(values.map((transition) => transition.id)),
   );
 };
 
@@ -428,10 +473,10 @@ export const getTransitionBalanceSummaryForBusiness = async (
   const transitions = await transitionsModel.findAll({
     where: {
       request_status: "approved",
-      payment_status: "unpaid",
       [Op.or]: [{ business_id: business.id }, { customer_business_id: business.id }],
     },
     attributes: [
+      "id",
       "customer_user_id",
       "customer_business_id",
       "business_id",
@@ -440,9 +485,11 @@ export const getTransitionBalanceSummaryForBusiness = async (
     ],
   });
 
+  const values = transitions.map((transition) => transition.dataValues);
   return summarizeTransitions(
-    transitions.map((transition) => transition.dataValues),
+    values,
     businessOwnerId,
+    await getPaidAmounts(values.map((transition) => transition.id)),
   );
 };
 
@@ -457,7 +504,13 @@ export const findTransitionByUuid = async (
     include: [transitionUnitInclude],
   });
 
-  return transition ? toPublicTransition(transition.dataValues, currentUserId) : undefined;
+  if (!transition) return undefined;
+  const paidAmounts = await getPaidAmounts([transition.id]);
+  return toPublicTransition(
+    transition.dataValues,
+    currentUserId,
+    paidAmounts.get(transition.id) ?? 0,
+  );
 };
 
 export const updateTransitionByUuid = async (
@@ -465,13 +518,26 @@ export const updateTransitionByUuid = async (
   currentUserId: number,
   data: ITransitionUpdateData,
 ): Promise<ITransitionPublic | undefined> => {
-  const accessWhere = getAccessibleWhere(currentUserId);
-  const transition = await transitionsModel.findOne({
-    where: { uuid, [Op.and]: [accessWhere] },
+  return sequelize.transaction(async (transaction) => {
+    const accessWhere = getAccessibleWhere(currentUserId);
+    const transition = await transitionsModel.findOne({
+      where: { uuid, [Op.and]: [accessWhere] },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+
+    if (!transition) return undefined;
+    const becameApproved =
+      transition.request_status !== "approved" && data.request_status === "approved";
+    const updatedTransition = await transition.update(data, { transaction });
+    if (becameApproved) {
+      await addTransitionToOutstanding(updatedTransition.dataValues, currentUserId, transaction);
+    }
+    const paidAmounts = await getPaidAmounts([updatedTransition.id]);
+    return toPublicTransition(
+      updatedTransition.dataValues,
+      currentUserId,
+      paidAmounts.get(updatedTransition.id) ?? 0,
+    );
   });
-
-  if (!transition) return undefined;
-
-  const updatedTransition = await transition.update(data);
-  return toPublicTransition(updatedTransition.dataValues, currentUserId);
 };
