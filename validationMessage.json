@@ -77,6 +77,38 @@
     "IS_ACTIVE_INVALID": "Active status must be true or false.",
     "ROLE_ID_REQUIRED": "Role identifier is required.",
     "ROLE_ID_INVALID": "Role identifier must be a positive whole number.",
+    "CONFIG_INVALID": "Subscription limits must be a valid configuration.",
+    "TRANSITION_LIMIT_REQUIRED": "Transition limit is required.",
+    "CONNECTED_CUSTOMER_LIMIT_REQUIRED": "Connected customer limit is required.",
+    "CONNECTED_BUSINESS_LIMIT_REQUIRED": "Connected business limit is required.",
+    "CONNECTED_USER_LIMIT_REQUIRED": "Connected user limit is required.",
+    "MANAGED_BUSINESS_LIMIT_REQUIRED": "Managed business limit is required.",
+    "CONFIG_LIMIT_INVALID": "Subscription limits must be zero or a positive whole number.",
+    "CONFIG_LIMIT_MAX": "Subscription limit is too large.",
+    "UNKNOWN_FIELDS": "Request contains an unsupported field."
+  },
+  "USER_SUBSCRIPTION": {
+    "CREATE_VALIDATION_FAILED": "Please correct the invalid user subscription details.",
+    "UPDATE_VALIDATION_FAILED": "Please correct the invalid user subscription details.",
+    "UUID_VALIDATION_FAILED": "Please provide a valid user subscription identifier.",
+    "UPDATE_EMPTY": "Provide at least one user subscription field to update.",
+    "UUID_REQUIRED": "User subscription identifier is required.",
+    "UUID_INVALID": "User subscription identifier must be a valid UUID.",
+    "USER_UUID_REQUIRED": "User identifier is required.",
+    "USER_UUID_INVALID": "User identifier must be a valid UUID.",
+    "SUBSCRIPTION_UUID_REQUIRED": "Subscription identifier is required.",
+    "SUBSCRIPTION_UUID_INVALID": "Subscription identifier must be a valid UUID.",
+    "EXPIRY_REQUIRED": "Subscription expiry is required.",
+    "EXPIRY_INVALID": "Subscription expiry must be a valid ISO date and time.",
+    "EXPIRY_FUTURE": "Subscription expiry must be in the future.",
+    "UNKNOWN_FIELDS": "Request contains an unsupported field."
+  },
+  "PAYMENT": {
+    "ORDER_VALIDATION_FAILED": "Please correct the invalid Razorpay order details.",
+    "VERIFICATION_VALIDATION_FAILED": "Please provide all valid Razorpay payment verification fields.",
+    "SUBSCRIPTION_UUID_INVALID": "Subscription identifier must be a valid UUID.",
+    "PURCHASE_TOKEN_INVALID": "Google Play purchase token is required.",
+    "GOOGLE_PLAY_VALIDATION_FAILED": "Please correct the invalid Google Play purchase details.",
     "UNKNOWN_FIELDS": "Request contains an unsupported field."
   },
   "BUSINESS": {

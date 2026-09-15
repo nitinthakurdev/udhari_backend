@@ -29,8 +29,14 @@ const subscriptionModel = sequelize.define<ISubscriptionModel>(
     },
     config: {
       type: DataTypes.JSONB,
-      allowNull: true,
-      defaultValue: {},
+      allowNull: false,
+      defaultValue: {
+        allowed_transitions: 0,
+        allowed_connected_customers: 0,
+        allowed_connected_businesses: 0,
+        allowed_connected_users: 0,
+        allowed_managed_businesses: 0,
+      },
     },
     price: {
       type: DataTypes.DECIMAL(10, 2),
@@ -54,6 +60,15 @@ const subscriptionModel = sequelize.define<ISubscriptionModel>(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true,
+    },
+    google_play_product_id: {
+      type: DataTypes.STRING(200),
+      allowNull: true,
+    },
+    auto_renewal_enabled: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
     },
     role_id: {
       type: DataTypes.INTEGER,
@@ -102,6 +117,11 @@ const subscriptionModel = sequelize.define<ISubscriptionModel>(
         unique: true,
         fields: ["name", "role_id"],
         where: { deleted_at: null },
+      },
+      {
+        name: "subscriptions_google_play_product_unique",
+        unique: true,
+        fields: ["google_play_product_id"],
       },
     ],
   },

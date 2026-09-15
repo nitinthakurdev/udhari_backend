@@ -13,6 +13,10 @@ class Config {
   public SMTP_PASS: string | undefined;
   public EMAIL_TRANSPORT: string | undefined;
   public GOOGLE_MAPS_API_KEY: string | undefined;
+  public RAZORPAY_KEY_ID: string | undefined;
+  public RAZORPAY_KEY_SECRET: string | undefined;
+  public GOOGLE_PLAY_PACKAGE_NAME: string | undefined;
+  public GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: string | undefined;
 
   constructor() {
     this.NODE_ENV = process.env["NODE_ENV"];
@@ -27,6 +31,10 @@ class Config {
     this.SMTP_PASS = process.env["SMTP_PASS"];
     this.EMAIL_TRANSPORT = process.env["EMAIL_TRANSPORT"];
     this.GOOGLE_MAPS_API_KEY = process.env["GOOGLE_MAPS_API_KEY"];
+    this.RAZORPAY_KEY_ID = process.env["RAZORPAY_KEY_ID"];
+    this.RAZORPAY_KEY_SECRET = process.env["RAZORPAY_KEY_SECRET"];
+    this.GOOGLE_PLAY_PACKAGE_NAME = process.env["GOOGLE_PLAY_PACKAGE_NAME"];
+    this.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON = process.env["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"];
   }
 }
 

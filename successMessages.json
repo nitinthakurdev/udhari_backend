@@ -22,6 +22,20 @@
     "UPDATE": "Subscription updated successfully.",
     "DELETE": "Subscription deleted successfully."
   },
+  "USER_SUBSCRIPTION": {
+    "CREATE": "User subscription created successfully.",
+    "LIST": "User subscriptions fetched successfully.",
+    "GET": "User subscription fetched successfully.",
+    "NONE_ACTIVE": "No active subscription found for this user.",
+    "UPDATE": "User subscription updated successfully.",
+    "DELETE": "User subscription deleted successfully.",
+    "FREE_ACTIVATED": "Free subscription activated successfully."
+  },
+  "PAYMENT": {
+    "ORDER_CREATED": "Razorpay order created successfully.",
+    "PAYMENT_VERIFIED": "Razorpay payment verified successfully.",
+    "GOOGLE_PLAY_VERIFIED": "Google Play subscription verified successfully."
+  },
   "BUSINESS": {
     "CREATE": "Your business, shop, or branch has been added successfully.",
     "LIST": "Businesses and shops fetched successfully.",

@@ -9,16 +9,26 @@ import { listPublicSubscriptions } from "./controllers/subscriptionController";
 import { customerManagementRoutes } from "./routes/customerManagementRoutes";
 import { transitionRoutes } from "./routes/transitionRoutes";
 import { unitRoutes } from "./routes/unitRoutes";
+import { userSubscriptionRoutes } from "./routes/userSubscriptionRoutes";
+import { paymentRoutes } from "./routes/paymentRoutes";
+import { requireActiveSubscription } from "./middlewares/subscriptionAuthorizationMiddleware";
 
 export const appRouter = (): Router => {
   const routes: Router = Router();
   routes.use("/users", userRouter());
   routes.use("/roles", authorization, requireAdmin, roleRouter());
-  routes.use("/business", authorization, businessRoutes());
-  routes.use("/customer-management", authorization, customerManagementRoutes());
-  routes.use("/transitions", authorization, transitionRoutes());
-  routes.use("/units", authorization, unitRoutes());
+  routes.use("/business", authorization, requireActiveSubscription, businessRoutes());
+  routes.use(
+    "/customer-management",
+    authorization,
+    requireActiveSubscription,
+    customerManagementRoutes(),
+  );
+  routes.use("/transitions", authorization, requireActiveSubscription, transitionRoutes());
+  routes.use("/units", authorization, requireActiveSubscription, unitRoutes());
   routes.get("/subscriptions/public", listPublicSubscriptions);
   routes.use("/subscriptions", authorization, requireAdmin, subscriptionRoutes());
+  routes.use("/user-subscriptions", authorization, userSubscriptionRoutes());
+  routes.use("/payments", authorization, paymentRoutes());
   return routes;
 };

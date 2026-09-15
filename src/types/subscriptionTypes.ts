@@ -5,7 +5,11 @@ export const SUBSCRIPTION_DURATION_TYPES = ["MONTHLY", "YEARLY", "QUARTERLY"] as
 export type SubscriptionDurationType = (typeof SUBSCRIPTION_DURATION_TYPES)[number];
 
 export interface ISubscriptionConfig {
-  allowed_users: number;
+  allowed_transitions: number;
+  allowed_connected_customers: number;
+  allowed_connected_businesses: number;
+  allowed_connected_users: number;
+  allowed_managed_businesses: number;
 }
 
 export interface ISubscriptionSchema {
@@ -19,6 +23,8 @@ export interface ISubscriptionSchema {
   duration: number;
   duration_type: SubscriptionDurationType;
   is_active: boolean;
+  google_play_product_id: string | null;
+  auto_renewal_enabled: boolean;
   config: ISubscriptionConfig;
   role_id: number;
   created_by: number | null;
@@ -37,6 +43,8 @@ export type SubscriptionCreationSchema = Optional<
   | "duration_type"
   | "is_active"
   | "config"
+  | "google_play_product_id"
+  | "auto_renewal_enabled"
   | "created_by"
   | "updated_by"
   | "deleted_by"
@@ -50,10 +58,20 @@ export interface ISubscriptionModel
 
 export type ISubscriptionCreatePayload = Pick<
   ISubscriptionSchema,
-  "name" | "description" | "features" | "duration" | "role_id"
+  "name" | "description" | "features" | "duration" | "role_id" | "config"
 > & {
   price: number;
-} & Partial<Pick<ISubscriptionSchema, "currency" | "duration_type" | "is_active" | "created_by">>;
+} & Partial<
+    Pick<
+      ISubscriptionSchema,
+      | "currency"
+      | "duration_type"
+      | "is_active"
+      | "google_play_product_id"
+      | "auto_renewal_enabled"
+      | "created_by"
+    >
+  >;
 
 export type ISubscriptionUpdatePayload = Partial<
   Pick<
@@ -66,6 +84,9 @@ export type ISubscriptionUpdatePayload = Partial<
     | "duration_type"
     | "is_active"
     | "role_id"
+    | "config"
+    | "google_play_product_id"
+    | "auto_renewal_enabled"
   >
 > & {
   price?: number;
@@ -85,6 +106,9 @@ export type ISubscriptionPublic = Pick<
   | "duration_type"
   | "is_active"
   | "role_id"
+  | "config"
+  | "google_play_product_id"
+  | "auto_renewal_enabled"
   | "created_at"
   | "updated_at"
 > & {

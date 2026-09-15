@@ -33,6 +33,21 @@
     "NOT_FOUND": "Subscription not found.",
     "ROLE_NOT_FOUND": "The selected role was not found."
   },
+  "USER_SUBSCRIPTION": {
+    "ALREADY_EXISTS": "This user already has an active subscription.",
+    "ACTIVE_REQUIRED": "An active subscription is required. Please choose a plan to continue.",
+    "NOT_FOUND": "User subscription not found.",
+    "USER_NOT_FOUND": "The selected user was not found.",
+    "SUBSCRIPTION_NOT_FOUND": "The selected subscription was not found."
+  },
+  "PAYMENT": {
+    "SUBSCRIPTION_NOT_FOUND": "The selected paid subscription was not found.",
+    "PAID_PLAN_REQUIRED": "Only paid plans require Razorpay Checkout, and the minimum amount is ₹1.",
+    "ORDER_FAILED": "Unable to create the Razorpay order. Please try again.",
+    "VERIFICATION_FAILED": "Unable to verify the Razorpay payment. Please contact support if you were charged.",
+    "RAZORPAY_AUTH_FAILED": "Razorpay authentication failed. Generate a new matching test key and secret, update the backend and frontend environment files, then restart both servers.",
+    "GOOGLE_PLAY_VERIFICATION_FAILED": "Unable to verify the Google Play subscription. Please try again."
+  },
   "BUSINESS": {
     "EXIST": "A business with this name already exists. Please choose a different name and try again.",
     "NOT_FOUND": "Business not found or you do not have permission to update it.",

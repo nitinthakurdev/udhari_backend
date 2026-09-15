@@ -5,6 +5,30 @@ import validationMessages from "../../validationMessage.json";
 
 const subscriptionMessages = validationMessages.SUBSCRIPTION;
 
+const subscriptionLimit = (requiredMessage: string) =>
+  z
+    .number({ error: requiredMessage })
+    .int({ error: subscriptionMessages.CONFIG_LIMIT_INVALID })
+    .nonnegative({ error: subscriptionMessages.CONFIG_LIMIT_INVALID })
+    .max(2_147_483_647, { error: subscriptionMessages.CONFIG_LIMIT_MAX });
+
+const subscriptionConfig = z.strictObject(
+  {
+    allowed_transitions: subscriptionLimit(subscriptionMessages.TRANSITION_LIMIT_REQUIRED),
+    allowed_connected_customers: subscriptionLimit(
+      subscriptionMessages.CONNECTED_CUSTOMER_LIMIT_REQUIRED,
+    ),
+    allowed_connected_businesses: subscriptionLimit(
+      subscriptionMessages.CONNECTED_BUSINESS_LIMIT_REQUIRED,
+    ),
+    allowed_connected_users: subscriptionLimit(subscriptionMessages.CONNECTED_USER_LIMIT_REQUIRED),
+    allowed_managed_businesses: subscriptionLimit(
+      subscriptionMessages.MANAGED_BUSINESS_LIMIT_REQUIRED,
+    ),
+  },
+  { error: subscriptionMessages.CONFIG_INVALID },
+);
+
 const subscriptionFields = {
   name: z
     .string({ error: subscriptionMessages.NAME_REQUIRED })
@@ -45,6 +69,14 @@ const subscriptionFields = {
     error: subscriptionMessages.DURATION_TYPE_INVALID,
   }),
   is_active: z.boolean({ error: subscriptionMessages.IS_ACTIVE_INVALID }),
+  google_play_product_id: z
+    .string()
+    .trim()
+    .min(1)
+    .max(200)
+    .regex(/^[a-zA-Z0-9._]+$/)
+    .nullable(),
+  auto_renewal_enabled: z.boolean(),
   role_id: z
     .number({ error: subscriptionMessages.ROLE_ID_REQUIRED })
     .int({ error: subscriptionMessages.ROLE_ID_INVALID })
@@ -61,7 +93,10 @@ export const createSubscriptionValidationPayload = z.strictObject(
     duration: subscriptionFields.duration,
     duration_type: subscriptionFields.duration_type.optional(),
     is_active: subscriptionFields.is_active.optional(),
+    google_play_product_id: subscriptionFields.google_play_product_id.optional(),
+    auto_renewal_enabled: subscriptionFields.auto_renewal_enabled.optional(),
     role_id: subscriptionFields.role_id,
+    config: subscriptionConfig,
   },
   { error: subscriptionMessages.UNKNOWN_FIELDS },
 );
@@ -77,7 +112,10 @@ export const updateSubscriptionValidationPayload = z
       duration: subscriptionFields.duration.optional(),
       duration_type: subscriptionFields.duration_type.optional(),
       is_active: subscriptionFields.is_active.optional(),
+      google_play_product_id: subscriptionFields.google_play_product_id.optional(),
+      auto_renewal_enabled: subscriptionFields.auto_renewal_enabled.optional(),
       role_id: subscriptionFields.role_id.optional(),
+      config: subscriptionConfig.optional(),
     },
     { error: subscriptionMessages.UNKNOWN_FIELDS },
   )
