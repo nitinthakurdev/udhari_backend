@@ -5,12 +5,14 @@ export interface IBillingSchema {
   uuid: string;
   current_outstanding: number | string;
   customer_id: number;
+  customer_business_id: number | null;
   business_id: number;
   business_owner_id: number;
   start_date_of_month: string;
   end_date_of_month: string;
   due_date: string;
   extend_due_date: string | null;
+  generated_at: Date | null;
   created_by: number | null;
   updated_by: number | null;
   created_at: Date;
@@ -23,7 +25,9 @@ export type BillingCreationSchema = Optional<
   | "id"
   | "uuid"
   | "current_outstanding"
+  | "customer_business_id"
   | "extend_due_date"
+  | "generated_at"
   | "created_by"
   | "updated_by"
   | "created_at"
@@ -66,9 +70,11 @@ export interface IBillingPublic {
   end_date_of_month: string;
   due_date: string;
   extend_due_date: string | null;
+  generated_at: Date | null;
   created_at: Date;
   updated_at: Date;
   customer: IBillingCustomer | null;
+  customer_business: IBillingParty | null;
   business: IBillingParty | null;
   payments: IBillingPaymentPublic[];
 }
@@ -77,6 +83,8 @@ export interface IBillingListOptions {
   page: number;
   limit: number;
   paginated: boolean;
+  year?: number;
+  month?: number;
 }
 
 export interface IBillingPage {
@@ -90,4 +98,8 @@ export interface IRecordBillingPaymentPayload {
 
 export interface IExtendBillingDueDatePayload {
   extend_due_date: string;
+}
+
+export interface IGenerateBillingPayload {
+  due_date: string;
 }

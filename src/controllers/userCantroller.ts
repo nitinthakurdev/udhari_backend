@@ -172,6 +172,7 @@ export const signup = AsyncHandler(async (req, res): Promise<void> => {
   assertUserFieldsAreUnique(conflicts);
 
   const hashedPassword = await bcrypt.hash(userData.password, 10);
+  console.log("this is role slug ",roleSlug)
   const selectedRole = await findRoleBySlag(roleSlug);
 
   if (!selectedRole) {

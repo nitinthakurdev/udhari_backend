@@ -58,34 +58,40 @@ const toPublicTransition = (
   transition: TransitionWithUnit,
   currentUserId: number,
   paidAmount = 0,
-): ITransitionPublic => ({
-  uuid: transition.uuid,
-  customer_user_id: transition.customer_user_id,
-  customer_business_id: transition.customer_business_id,
-  business_id: transition.business_id,
-  business_user_id: transition.business_user_id,
-  unit_id: transition.unit_id,
-  product_name: transition.product_name,
-  product_qty: Number(transition.product_qty),
-  product_unit_price: Number(transition.product_unit_price),
-  total_price: Number(transition.total_price),
-  paid_amount: paidAmount,
-  outstanding_amount: Math.max(Number(transition.total_price) - paidAmount, 0),
-  payment_status:
-    paidAmount >= Number(transition.total_price) ? "paid" : paidAmount > 0 ? "partial" : "unpaid",
-  request_status: transition.request_status,
-  balance_type: transition.balance_type,
-  account_type:
-    transition.customer_user_id === currentUserId
+  activeBusinessId?: number,
+): ITransitionPublic => {
+  const currentIsCustomer =
+    activeBusinessId !== undefined
+      ? transition.customer_business_id === activeBusinessId
+      : transition.customer_user_id === currentUserId;
+  return {
+    uuid: transition.uuid,
+    customer_user_id: transition.customer_user_id,
+    customer_business_id: transition.customer_business_id,
+    business_id: transition.business_id,
+    business_user_id: transition.business_user_id,
+    unit_id: transition.unit_id,
+    product_name: transition.product_name,
+    product_qty: Number(transition.product_qty),
+    product_unit_price: Number(transition.product_unit_price),
+    total_price: Number(transition.total_price),
+    paid_amount: paidAmount,
+    outstanding_amount: Math.max(Number(transition.total_price) - paidAmount, 0),
+    payment_status:
+      paidAmount >= Number(transition.total_price) ? "paid" : paidAmount > 0 ? "partial" : "unpaid",
+    request_status: transition.request_status,
+    balance_type: transition.balance_type,
+    account_type: currentIsCustomer
       ? transition.balance_type
       : inverseBalanceType(transition.balance_type),
-  comment: transition.comment,
-  created_by: transition.created_by,
-  updated_by: transition.updated_by,
-  created_at: transition.created_at,
-  updated_at: transition.updated_at,
-  unit: transition.unit ? { name: transition.unit.name, code: transition.unit.code } : null,
-});
+    comment: transition.comment,
+    created_by: transition.created_by,
+    updated_by: transition.updated_by,
+    created_at: transition.created_at,
+    updated_at: transition.updated_at,
+    unit: transition.unit ? { name: transition.unit.name, code: transition.unit.code } : null,
+  };
+};
 
 const getAccessibleWhere = (currentUserId: number): WhereOptions<ITransitionSchema> => {
   return {
@@ -167,11 +173,17 @@ const toPaginationResult = async (
   rows: ITransitionSchema[],
   count: number,
   currentUserId: number,
+  activeBusinessId?: number,
 ): Promise<ITransitionPage> => {
   const paidAmounts = await getPaidAmounts(rows.map((transition) => transition.id));
   return {
     items: rows.map((transition) =>
-      toPublicTransition(transition, currentUserId, paidAmounts.get(transition.id) ?? 0),
+      toPublicTransition(
+        transition,
+        currentUserId,
+        paidAmounts.get(transition.id) ?? 0,
+        activeBusinessId,
+      ),
     ),
     total: count,
   };
@@ -181,6 +193,7 @@ const summarizeTransitions = (
   transitions: ITransitionSchema[],
   currentUserId: number,
   paidAmounts: Map<number, number>,
+  activeBusinessId?: number,
 ): ITransitionBalanceSummary => {
   const summary: ITransitionBalanceSummary = {
     payable: 0,
@@ -190,13 +203,14 @@ const summarizeTransitions = (
   const grouped = new Map<string, ITransitionBalanceSummary["parties"][number]>();
 
   transitions.forEach((transition) => {
-    const accountType =
-      transition.customer_user_id === currentUserId
-        ? transition.balance_type
-        : inverseBalanceType(transition.balance_type);
-    const currentIsCustomer = transition.customer_user_id === currentUserId;
-    const partyType =
-      transition.customer_business_id === null && !currentIsCustomer ? "user" : "business";
+    const currentIsCustomer =
+      activeBusinessId !== undefined
+        ? transition.customer_business_id === activeBusinessId
+        : transition.customer_user_id === currentUserId;
+    const accountType = currentIsCustomer
+      ? transition.balance_type
+      : inverseBalanceType(transition.balance_type);
+    const partyType = transition.customer_business_id === null ? "user" : "business";
     const partyId =
       partyType === "user"
         ? transition.customer_user_id
@@ -349,7 +363,10 @@ export const createTransitions = async (
     });
     const billingGroups = new Map<string, ITransitionCreateData>();
     data.forEach((item) => {
-      billingGroups.set(`${String(item.customer_user_id)}:${String(item.business_id)}`, item);
+      billingGroups.set(
+        `${String(item.customer_user_id)}:${String(item.customer_business_id)}:${String(item.business_id)}:${item.balance_type}`,
+        item,
+      );
     });
     await Promise.all(
       [...billingGroups.values()].map((item) => ensureMonthlyBilling(item, transaction)),
@@ -432,6 +449,7 @@ export const findTransitionsForBusiness = async (
     rows.map((transition) => transition.dataValues),
     count,
     businessOwnerId,
+    business.id,
   );
 };
 
@@ -490,6 +508,7 @@ export const getTransitionBalanceSummaryForBusiness = async (
     values,
     businessOwnerId,
     await getPaidAmounts(values.map((transition) => transition.id)),
+    business.id,
   );
 };
 

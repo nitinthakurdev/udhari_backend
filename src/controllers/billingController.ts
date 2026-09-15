@@ -2,11 +2,13 @@ import {
   extendBillingDueDate,
   findBillingByUuid,
   findBillings,
+  generateBilling,
   recordBillingPayment,
 } from "@/services/billingService";
 import type {
   IBillingListOptions,
   IExtendBillingDueDatePayload,
+  IGenerateBillingPayload,
   IRecordBillingPaymentPayload,
 } from "@/types/billingTypes";
 import {
@@ -26,6 +28,8 @@ const getListOptions = (query: Record<string, unknown>): IBillingListOptions => 
   page: Number(query["page"] ?? 1),
   limit: Number(query["limit"] ?? 20),
   paginated: query["page"] !== undefined || query["limit"] !== undefined,
+  ...(query["year"] !== undefined ? { year: Number(query["year"]) } : {}),
+  ...(query["month"] !== undefined ? { month: Number(query["month"]) } : {}),
 });
 
 const getPaginationMeta = (page: number, limit: number, total: number) => {
@@ -110,10 +114,32 @@ export const updateBillingDueDate = AsyncHandler(async (req, res): Promise<void>
   if (result.status === "forbidden") {
     throw new ForbiddenError("Only the business owner can extend the due date.");
   }
+  if (result.status === "not_generated") {
+    throw new BadRequestError("Generate the bill before extending its due date.");
+  }
   if (result.status === "invalid_date") {
     throw new BadRequestError("Extended due date must be later than the original due date.");
   }
   res
     .status(StatusCodes.OK)
     .json(response.ok(result.billing, { message: "Billing due date updated successfully." }));
+});
+
+export const generateMonthlyBilling = AsyncHandler(async (req, res): Promise<void> => {
+  if (!req.currentUser) throw new UnauthorizedError("Authentication is required.");
+  const result = await generateBilling(
+    req.params["uuid"] as string,
+    (req.body as IGenerateBillingPayload).due_date,
+    req.currentUser.id,
+  );
+  if (result.status === "not_found") throw new NotFoundError("Billing statement not found.");
+  if (result.status === "forbidden") {
+    throw new ForbiddenError("Only the business owner can generate the bill.");
+  }
+  if (result.status === "invalid_date") {
+    throw new BadRequestError("Due date cannot be before the end of the billing month.");
+  }
+  res
+    .status(StatusCodes.OK)
+    .json(response.ok(result.billing, { message: "Bill generated successfully." }));
 });

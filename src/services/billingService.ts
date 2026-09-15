@@ -1,5 +1,6 @@
 import { billingModel } from "@/models/billingModel";
 import { businessModel } from "@/models/businessModel";
+import { sequelize } from "@/config/dbConfig";
 import { paymentReceivedModel } from "@/models/paymentReceivedModel";
 import { transitionsModel } from "@/models/transitionModel";
 import { userModel } from "@/models/userModel";
@@ -78,9 +79,16 @@ export const ensureMonthlyBilling = async (
     ? (data.customer_business_id ?? data.business_id)
     : data.business_id;
   const businessOwnerId = reverseBusinessBalance ? data.customer_user_id : data.business_user_id;
+  const customerBusinessId =
+    data.customer_business_id === null
+      ? null
+      : reverseBusinessBalance
+        ? data.business_id
+        : data.customer_business_id;
   const [billing] = await billingModel.findOrCreate({
     where: {
       customer_id: customerId,
+      customer_business_id: customerBusinessId,
       business_id: businessId,
       start_date_of_month: period.start,
       end_date_of_month: period.end,
@@ -88,12 +96,14 @@ export const ensureMonthlyBilling = async (
     defaults: {
       current_outstanding: 0,
       customer_id: customerId,
+      customer_business_id: customerBusinessId,
       business_id: businessId,
       business_owner_id: businessOwnerId,
       start_date_of_month: period.start,
       end_date_of_month: period.end,
       due_date: period.due,
       extend_due_date: null,
+      generated_at: null,
       created_by: data.created_by,
       updated_by: null,
     },
@@ -132,18 +142,28 @@ const getApprovedTransitionsForBilling = async (
 ) =>
   transitionsModel.findAll({
     where: {
-      [Op.or]: [
-        {
-          customer_user_id: billing.customer_id,
-          business_id: billing.business_id,
-          balance_type: "payable",
-        },
-        {
-          business_user_id: billing.customer_id,
-          customer_business_id: billing.business_id,
-          balance_type: "receivable",
-        },
-      ],
+      [Op.or]:
+        billing.customer_business_id === null
+          ? [
+              {
+                customer_user_id: billing.customer_id,
+                customer_business_id: null,
+                business_id: billing.business_id,
+                balance_type: "payable",
+              },
+            ]
+          : [
+              {
+                customer_business_id: billing.customer_business_id,
+                business_id: billing.business_id,
+                balance_type: "payable",
+              },
+              {
+                customer_business_id: billing.business_id,
+                business_id: billing.customer_business_id,
+                balance_type: "receivable",
+              },
+            ],
       request_status: "approved",
       created_at: getBillingDateRange(billing),
     },
@@ -177,13 +197,17 @@ const getBillingAmounts = async (billing: IBillingSchema, transaction?: Transact
 };
 
 const toPublicBilling = async (billing: IBillingSchema): Promise<IBillingPublic> => {
-  const [{ transitions, payments, totalCents, paidCents }, customer, business] = await Promise.all([
-    getBillingAmounts(billing),
-    userModel.findByPk(billing.customer_id, {
-      attributes: ["uuid", "first_name", "last_name", "username"],
-    }),
-    businessModel.findByPk(billing.business_id, { attributes: ["uuid", "name"] }),
-  ]);
+  const [{ transitions, payments, totalCents, paidCents }, customer, customerBusiness, business] =
+    await Promise.all([
+      getBillingAmounts(billing),
+      userModel.findByPk(billing.customer_id, {
+        attributes: ["uuid", "first_name", "last_name", "username"],
+      }),
+      billing.customer_business_id
+        ? businessModel.findByPk(billing.customer_business_id, { attributes: ["uuid", "name"] })
+        : null,
+      businessModel.findByPk(billing.business_id, { attributes: ["uuid", "name"] }),
+    ]);
   const transitionsById = new Map(transitions.map((transition) => [transition.id, transition]));
   const outstandingCents = Math.max(totalCents - paidCents, 0);
   const paymentStatus =
@@ -199,6 +223,7 @@ const toPublicBilling = async (billing: IBillingSchema): Promise<IBillingPublic>
     end_date_of_month: billing.end_date_of_month,
     due_date: billing.due_date,
     extend_due_date: billing.extend_due_date,
+    generated_at: billing.generated_at,
     created_at: billing.created_at,
     updated_at: billing.updated_at,
     customer: customer
@@ -208,6 +233,9 @@ const toPublicBilling = async (billing: IBillingSchema): Promise<IBillingPublic>
           last_name: customer.last_name,
           username: customer.username,
         }
+      : null,
+    customer_business: customerBusiness
+      ? { uuid: customerBusiness.uuid, name: customerBusiness.name }
       : null,
     business: business ? { uuid: business.uuid, name: business.name } : null,
     payments: payments.map((payment) => {
@@ -238,7 +266,25 @@ export const findBillings = async (
       attributes: ["id"],
     });
     if (!business) return undefined;
-    where = { business_id: business.id, business_owner_id: currentUserId };
+    where = {
+      [Op.or]: [
+        { business_id: business.id, business_owner_id: currentUserId },
+        { customer_business_id: business.id, customer_id: currentUserId },
+      ],
+    };
+  }
+
+  if (options.year) {
+    const startMonth = options.month ?? 1;
+    const endYear = options.month === 12 || !options.month ? options.year + 1 : options.year;
+    const endMonth = options.month === 12 || !options.month ? 1 : options.month + 1;
+    where = {
+      ...where,
+      start_date_of_month: {
+        [Op.gte]: formatDateOnly(options.year, startMonth, 1),
+        [Op.lt]: formatDateOnly(endYear, endMonth, 1),
+      },
+    };
   }
 
   const { rows, count } = await billingModel.findAndCountAll({
@@ -356,8 +402,26 @@ export const extendBillingDueDate = async (
   const billing = await billingModel.findOne({ where: { uuid } });
   if (!billing) return { status: "not_found" } as const;
   if (billing.business_owner_id !== currentUserId) return { status: "forbidden" } as const;
+  if (!billing.generated_at) return { status: "not_generated" } as const;
   if (extendDueDate <= billing.due_date) return { status: "invalid_date" } as const;
-  await billing.update({ extend_due_date: extendDueDate, updated_by: currentUserId });
+  await billing.update({
+    extend_due_date: extendDueDate,
+    updated_by: currentUserId,
+  });
   return { status: "ok", billing: await toPublicBilling(billing.dataValues) } as const;
 };
-import { sequelize } from "@/config/dbConfig";
+
+export const generateBilling = async (uuid: string, dueDate: string, currentUserId: number) => {
+  const billing = await billingModel.findOne({ where: { uuid } });
+  if (!billing) return { status: "not_found" } as const;
+  if (billing.business_owner_id !== currentUserId) return { status: "forbidden" } as const;
+  if (dueDate < billing.end_date_of_month) return { status: "invalid_date" } as const;
+
+  await billing.update({
+    due_date: dueDate,
+    extend_due_date: null,
+    generated_at: new Date(),
+    updated_by: currentUserId,
+  });
+  return { status: "ok", billing: await toPublicBilling(billing.dataValues) } as const;
+};

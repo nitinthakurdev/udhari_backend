@@ -1,6 +1,6 @@
 import { sequelize } from "@/config/dbConfig";
 import type { IBillingModel } from "@/types/billingTypes";
-import { DataTypes } from "sequelize";
+import { DataTypes, Op } from "sequelize";
 
 const billingModel = sequelize.define<IBillingModel>(
   "BillingModel",
@@ -25,6 +25,10 @@ const billingModel = sequelize.define<IBillingModel>(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    customer_business_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     business_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -47,6 +51,10 @@ const billingModel = sequelize.define<IBillingModel>(
     },
     extend_due_date: {
       type: DataTypes.DATEONLY,
+      allowNull: true,
+    },
+    generated_at: {
+      type: DataTypes.DATE,
       allowNull: true,
     },
     created_by: {
@@ -80,12 +88,20 @@ const billingModel = sequelize.define<IBillingModel>(
     indexes: [
       { name: "billings_uuid_unique", unique: true, fields: ["uuid"] },
       { name: "billings_customer_id", fields: ["customer_id"] },
+      { name: "billings_customer_business_id", fields: ["customer_business_id"] },
       { name: "billings_business_id", fields: ["business_id"] },
       { name: "billings_business_owner_id", fields: ["business_owner_id"] },
       {
-        name: "billings_customer_business_month_unique",
+        name: "billings_user_business_month_unique",
         unique: true,
         fields: ["customer_id", "business_id", "start_date_of_month", "end_date_of_month"],
+        where: { customer_business_id: null },
+      },
+      {
+        name: "billings_business_pair_month_unique",
+        unique: true,
+        fields: ["customer_business_id", "business_id", "start_date_of_month", "end_date_of_month"],
+        where: { customer_business_id: { [Op.ne]: null } },
       },
     ],
   },

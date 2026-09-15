@@ -8,6 +8,8 @@ const uuidParams = z.strictObject({
 const listQuery = z.strictObject({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().min(1).max(50).default(20),
+  year: z.coerce.number().int().min(2026).max(9999).optional(),
+  month: z.coerce.number().int().min(1).max(12).optional(),
 });
 
 const paymentPayload = z.strictObject({
@@ -19,6 +21,10 @@ const paymentPayload = z.strictObject({
 
 const dueDatePayload = z.strictObject({
   extend_due_date: z.iso.date({ error: "A valid extended due date is required." }),
+});
+
+const generateBillingPayload = z.strictObject({
+  due_date: z.iso.date({ error: "A valid due date is required." }),
 });
 
 export const validateBillingUuid = validateRequest({
@@ -41,4 +47,10 @@ export const validateExtendBillingDueDate = validateRequest({
   params: uuidParams,
   body: dueDatePayload,
   errorMessage: "Invalid extended due date.",
+});
+
+export const validateGenerateBilling = validateRequest({
+  params: uuidParams,
+  body: generateBillingPayload,
+  errorMessage: "Invalid billing due date.",
 });

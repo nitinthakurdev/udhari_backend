@@ -7,6 +7,15 @@ import { userModel } from "@/models/userModel";
 userModel.hasMany(billingModel, { foreignKey: "customer_id", as: "customer_billings" });
 billingModel.belongsTo(userModel, { foreignKey: "customer_id", as: "customer" });
 
+businessModel.hasMany(billingModel, {
+  foreignKey: "customer_business_id",
+  as: "customer_business_billings",
+});
+billingModel.belongsTo(businessModel, {
+  foreignKey: "customer_business_id",
+  as: "customer_business",
+});
+
 businessModel.hasMany(billingModel, { foreignKey: "business_id", as: "billings" });
 billingModel.belongsTo(businessModel, { foreignKey: "business_id", as: "business" });
 
