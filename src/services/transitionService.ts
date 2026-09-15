@@ -210,9 +210,15 @@ const summarizeTransitions = (
     const accountType = currentIsCustomer
       ? transition.balance_type
       : inverseBalanceType(transition.balance_type);
-    const partyType = transition.customer_business_id === null ? "user" : "business";
-    const partyId =
-      partyType === "user"
+    const personalAccountSummary = activeBusinessId === undefined;
+    const partyType = personalAccountSummary
+      ? "business"
+      : transition.customer_business_id === null
+        ? "user"
+        : "business";
+    const partyId = personalAccountSummary
+      ? transition.business_id
+      : partyType === "user"
         ? transition.customer_user_id
         : currentIsCustomer
           ? transition.business_id
