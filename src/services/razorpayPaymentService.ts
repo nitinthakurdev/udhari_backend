@@ -39,6 +39,10 @@ export const createRazorpayOrder = async (
   userId: number,
   subscriptionUuid: string,
 ): Promise<IRazorpayOrderResponse | undefined> => {
+  const keyId = config.RAZORPAY_KEY_ID;
+  if (!keyId) {
+    throw new RazorpayPaymentError("Razorpay is not configured", 500);
+  }
   const [user, subscription] = await Promise.all([
     userModel.findByPk(userId, { attributes: ["id", "role_id"] }),
     subscriptionModel.findOne({ where: { uuid: subscriptionUuid, is_active: true } }),
@@ -68,6 +72,7 @@ export const createRazorpayOrder = async (
   });
 
   return {
+    key_id: keyId,
     order_id: order.id,
     amount: Number(order.amount),
     currency: order.currency,

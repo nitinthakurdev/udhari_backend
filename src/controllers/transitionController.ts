@@ -15,6 +15,7 @@ import type {
   ITransitionBatchCreatePayload,
   ITransitionCreatePayload,
   ITransitionListOptions,
+  ITransitionPublic,
   ITransitionUpdatePayload,
 } from "@/types/transitionTypes";
 import {
@@ -25,10 +26,16 @@ import {
   UnauthorizedError,
 } from "hal-response";
 import { StatusCodes } from "http-status-codes";
+import { notifyUsers } from "@/socket";
 import errorMessages from "../../errorMessages.json";
 import successMessages from "../../successMessages.json";
 
 const response = new HalSuccess();
+
+const getOtherPartyUserIds = (transition: ITransitionPublic, currentUserId: number) =>
+  [transition.customer_user_id, transition.business_user_id].filter(
+    (userId) => userId !== currentUserId,
+  );
 
 const getListOptions = (query: Record<string, unknown>): ITransitionListOptions => ({
   page: Number(query["page"] ?? 1),
@@ -196,6 +203,13 @@ export const createTransition = AsyncHandler(async (req, res): Promise<void> => 
     created_by: req.currentUser.id,
   });
 
+  notifyUsers(getOtherPartyUserIds(transition, req.currentUser.id), {
+    type: "transition.created",
+    title: "New transition request",
+    message: `${req.currentUser.first_name} sent a transition for ${transition.product_name}.`,
+    data: { transition_uuid: transition.uuid },
+  });
+
   res.status(StatusCodes.CREATED).json(
     response.created(transition, {
       message: successMessages.TRANSITION.CREATE,
@@ -274,6 +288,16 @@ export const createTransitions = AsyncHandler(async (req, res): Promise<void> =>
     })),
   );
 
+  notifyUsers(
+    [customerUserId, businessUserId].filter((userId) => userId !== currentUserId),
+    {
+      type: "transition.created",
+      title: "New transition requests",
+      message: `${req.currentUser.first_name} sent ${String(transitions.length)} transition requests.`,
+      data: { transition_count: transitions.length },
+    },
+  );
+
   res.status(StatusCodes.CREATED).json(
     response.created(transitions, {
       message: successMessages.TRANSITION.CREATE,
@@ -299,11 +323,9 @@ export const updateTransition = AsyncHandler(async (req, res): Promise<void> => 
   }
 
   const isApproval = data.request_status === "approved";
-  if (isApproval && currentTransition.created_by === req.currentUser.id) {
+  const proposalOwnerId = currentTransition.updated_by ?? currentTransition.created_by;
+  if (isApproval && proposalOwnerId === req.currentUser.id) {
     throw new ForbiddenError(errorMessages.TRANSITION.APPROVAL_DENIED);
-  }
-  if (!isApproval && currentTransition.created_by !== req.currentUser.id) {
-    throw new ForbiddenError(errorMessages.TRANSITION.EDIT_DENIED);
   }
   if (data.balance_type !== undefined && currentTransition.customer_business_id === null) {
     throw new ForbiddenError(errorMessages.TRANSITION.BALANCE_TYPE_DENIED);
@@ -328,6 +350,15 @@ export const updateTransition = AsyncHandler(async (req, res): Promise<void> => 
   if (!transition) {
     throw new NotFoundError(errorMessages.TRANSITION.NOT_FOUND);
   }
+
+  notifyUsers(getOtherPartyUserIds(transition, req.currentUser.id), {
+    type: "transition.updated",
+    title: isApproval ? "Transition approved" : "Transition updated",
+    message: isApproval
+      ? `${req.currentUser.first_name} approved the ${transition.product_name} transition.`
+      : `${req.currentUser.first_name} updated the ${transition.product_name} transition.`,
+    data: { transition_uuid: transition.uuid },
+  });
 
   res
     .status(StatusCodes.OK)
@@ -361,6 +392,13 @@ export const cancelTransition = AsyncHandler(async (req, res): Promise<void> => 
     throw new NotFoundError(errorMessages.TRANSITION.NOT_FOUND);
   }
 
+  notifyUsers(getOtherPartyUserIds(transition, req.currentUser.id), {
+    type: "transition.cancelled",
+    title: "Transition cancelled",
+    message: `${req.currentUser.first_name} cancelled the ${transition.product_name} transition.`,
+    data: { transition_uuid: transition.uuid },
+  });
+
   res
     .status(StatusCodes.OK)
     .json(response.ok(transition, { message: successMessages.TRANSITION.CANCEL }));
@@ -384,16 +422,25 @@ export const receiveTransitionPayment = AsyncHandler(async (req, res): Promise<v
     throw new ForbiddenError(errorMessages.TRANSITION.PAYMENT_REQUIRES_APPROVAL);
   }
 
-  const transition =
-    currentTransition.payment_status === "paid"
-      ? currentTransition
-      : await updateTransitionByUuid(uuid, req.currentUser.id, {
-          payment_status: "paid",
-          updated_by: req.currentUser.id,
-        });
+  const wasAlreadyPaid = currentTransition.payment_status === "paid";
+  const transition = wasAlreadyPaid
+    ? currentTransition
+    : await updateTransitionByUuid(uuid, req.currentUser.id, {
+        payment_status: "paid",
+        updated_by: req.currentUser.id,
+      });
 
   if (!transition) {
     throw new NotFoundError(errorMessages.TRANSITION.NOT_FOUND);
+  }
+
+  if (!wasAlreadyPaid) {
+    notifyUsers(getOtherPartyUserIds(transition, req.currentUser.id), {
+      type: "transition.payment_received",
+      title: "Payment received",
+      message: `${req.currentUser.first_name} marked the ${transition.product_name} payment as received.`,
+      data: { transition_uuid: transition.uuid },
+    });
   }
 
   res.status(StatusCodes.OK).json(

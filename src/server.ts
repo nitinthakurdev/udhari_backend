@@ -25,6 +25,7 @@ import "./association/customerManagementAssociation";
 import "./association/transitionAssociation";
 import "./association/userSubscriptionAssociation";
 import { config } from "./config/envConfig";
+import { initializeSocket } from "./socket";
 
 const SERVER_PORT = config.NODE_ENV === "development" ? 5001 : 5000;
 
@@ -85,6 +86,7 @@ function errorHandler(app: Application): void {
 
 function startServer(app: Application) {
   const server: http.Server = http.createServer(app);
+  initializeSocket(server);
   server.listen(SERVER_PORT, () => {
     console.log("server is up and running on port %d", SERVER_PORT);
   });

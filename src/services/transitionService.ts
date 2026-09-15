@@ -33,15 +33,27 @@ const transitionAttributes = [
   "balance_type",
   "comment",
   "created_by",
+  "updated_by",
   "created_at",
   "updated_at",
 ];
+
+const transitionUnitInclude = {
+  model: unitModel,
+  as: "unit",
+  attributes: ["name", "code"],
+  required: false,
+};
+
+type TransitionWithUnit = ITransitionSchema & {
+  unit?: { name: string; code: string } | null;
+};
 
 const inverseBalanceType = (balanceType: ITransitionSchema["balance_type"]) =>
   balanceType === "payable" ? "receivable" : "payable";
 
 const toPublicTransition = (
-  transition: ITransitionSchema,
+  transition: TransitionWithUnit,
   currentUserId: number,
 ): ITransitionPublic => ({
   uuid: transition.uuid,
@@ -63,8 +75,10 @@ const toPublicTransition = (
       : inverseBalanceType(transition.balance_type),
   comment: transition.comment,
   created_by: transition.created_by,
+  updated_by: transition.updated_by,
   created_at: transition.created_at,
   updated_at: transition.updated_at,
+  unit: transition.unit ? { name: transition.unit.name, code: transition.unit.code } : null,
 });
 
 const getAccessibleWhere = (currentUserId: number): WhereOptions<ITransitionSchema> => {
@@ -73,7 +87,22 @@ const getAccessibleWhere = (currentUserId: number): WhereOptions<ITransitionSche
   };
 };
 
-const getViewWhere = (view: ITransitionListOptions["view"]): WhereOptions<ITransitionSchema> => {
+const getViewWhere = (
+  view: ITransitionListOptions["view"],
+  currentUserId: number,
+): WhereOptions<ITransitionSchema> => {
+  if (view === "pending") {
+    return {
+      request_status: "pending",
+      [Op.or]: [
+        { updated_by: { [Op.ne]: currentUserId } },
+        {
+          updated_by: null,
+          created_by: { [Op.ne]: currentUserId },
+        },
+      ],
+    };
+  }
   if (view === "unpaid") {
     return { request_status: "approved", payment_status: "unpaid" };
   }
@@ -293,11 +322,12 @@ export const findTransitions = async (
     where: {
       [Op.and]: [
         getAccessibleWhere(currentUserId),
-        getViewWhere(options.view),
+        getViewWhere(options.view, currentUserId),
         getPartyWhere(options),
       ],
     },
     attributes: transitionAttributes,
+    include: [transitionUnitInclude],
     ...(options.paginated
       ? {
           limit: options.limit,
@@ -335,11 +365,12 @@ export const findTransitionsForBusiness = async (
         {
           [Op.or]: [{ business_id: business.id }, { customer_business_id: business.id }],
         },
-        getViewWhere(options.view),
+        getViewWhere(options.view, businessOwnerId),
         getPartyWhere(options, business.id),
       ],
     },
     attributes: transitionAttributes,
+    include: [transitionUnitInclude],
     ...(options.paginated
       ? {
           limit: options.limit,
@@ -423,6 +454,7 @@ export const findTransitionByUuid = async (
   const transition = await transitionsModel.findOne({
     where: { uuid, [Op.and]: [accessWhere] },
     attributes: transitionAttributes,
+    include: [transitionUnitInclude],
   });
 
   return transition ? toPublicTransition(transition.dataValues, currentUserId) : undefined;

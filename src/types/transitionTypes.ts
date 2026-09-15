@@ -1,4 +1,5 @@
 import type { Model, Optional } from "sequelize";
+import type { IUnitSchema } from "@/types/unitTypes";
 
 export type TransitionRequestStatus =
   "pending" | "approved" | "rejected" | "not_available" | "cancelled";
@@ -118,12 +119,14 @@ export type ITransitionPublic = Pick<
   | "balance_type"
   | "comment"
   | "created_by"
+  | "updated_by"
   | "created_at"
   | "updated_at"
 > & {
   product_unit_price: number;
   total_price: number;
   account_type: TransitionBalanceType;
+  unit: Pick<IUnitSchema, "name" | "code"> | null;
 };
 
 export interface ITransitionAccess {
@@ -140,7 +143,7 @@ export interface ITransitionListOptions {
   page: number;
   limit: number;
   paginated: boolean;
-  view: "all" | "unpaid" | "cancelled";
+  view: "all" | "pending" | "unpaid" | "cancelled";
   partyType?: "user" | "business";
   partyId?: number;
 }

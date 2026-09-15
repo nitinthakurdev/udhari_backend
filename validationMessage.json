@@ -172,7 +172,7 @@
     "PRODUCT_NAME_REQUIRED": "Product name is required.",
     "PRODUCT_NAME_MIN_LENGTH": "Product name must contain at least 2 characters.",
     "PRODUCT_NAME_MAX_LENGTH": "Product name cannot contain more than 150 characters.",
-    "PRODUCT_QTY_INVALID": "Product quantity must be a positive number.",
+    "PRODUCT_QTY_INVALID": "Product quantity must be zero or greater.",
     "PRODUCT_QTY_MAX": "Product quantity cannot be greater than 1000000.",
     "PRODUCT_UNIT_PRICE_REQUIRED": "Product unit price is required.",
     "PRODUCT_UNIT_PRICE_INVALID": "Product unit price must be zero or greater.",

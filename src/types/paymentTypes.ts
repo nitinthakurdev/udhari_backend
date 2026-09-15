@@ -3,6 +3,7 @@ export interface ICreateRazorpayOrderPayload {
 }
 
 export interface IRazorpayOrderResponse {
+  key_id: string;
   order_id: string;
   amount: number;
   currency: string;

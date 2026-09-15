@@ -29,7 +29,7 @@ const fields = {
     .max(150, { error: messages.PRODUCT_NAME_MAX_LENGTH }),
   product_qty: z
     .number({ error: messages.PRODUCT_QTY_INVALID })
-    .positive({ error: messages.PRODUCT_QTY_INVALID })
+    .nonnegative({ error: messages.PRODUCT_QTY_INVALID })
     .max(1_000_000, { error: messages.PRODUCT_QTY_MAX }),
   product_unit_price: z
     .number({ error: messages.PRODUCT_UNIT_PRICE_REQUIRED })
@@ -61,7 +61,7 @@ const listQuery = z
   .strictObject({
     page: z.coerce.number().int().positive().default(1),
     limit: z.coerce.number().int().min(1).max(50).default(20),
-    view: z.enum(["all", "unpaid", "cancelled"]).default("all"),
+    view: z.enum(["all", "pending", "unpaid", "cancelled"]).default("all"),
     party_type: z.enum(["user", "business"]).optional(),
     party_id: z.coerce.number().int().positive().optional(),
   })
