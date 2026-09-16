@@ -4,6 +4,7 @@ import type http from "http";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 import { randomUUID } from "node:crypto";
 import { Server, type Socket } from "socket.io";
+import { sendPushNotifications } from "@/services/pushNotificationService";
 
 export type NotificationType =
   | "connection.requested"
@@ -116,8 +117,6 @@ export const notifyUsers = (
   userIds: readonly (number | null | undefined)[],
   notification: NotificationInput,
 ): void => {
-  if (!socketServer) return;
-
   const payload: RealtimeNotification = {
     ...notification,
     id: randomUUID(),
@@ -129,5 +128,9 @@ export const notifyUsers = (
   );
   uniqueUserIds.forEach((userId) => {
     socketServer?.to(userRoom(userId)).emit("notification", payload);
+  });
+
+  void sendPushNotifications([...uniqueUserIds], notification).catch((error: unknown) => {
+    console.error("Failed to send push notification", error);
   });
 };

@@ -21,6 +21,11 @@ import {
   validateSignup,
 } from "@/validations/userValidation";
 import { Router } from "express";
+import { registerPushToken, unregisterPushToken } from "@/controllers/pushNotificationController";
+import {
+  validateRegisterPushToken,
+  validateUnregisterPushToken,
+} from "@/validations/pushNotificationValidation";
 
 export const userRouter = (): Router => {
   const routes: Router = Router();
@@ -45,6 +50,10 @@ export const userRouter = (): Router => {
   routes.route("/current-user").get(authorization, loginUserDetails);
   routes.route("/change-password").patch(authorization, validateChangePassword, changePassword);
   routes.route("/logout").post(authorization, logoutUser);
+  routes
+    .route("/push-token")
+    .post(authorization, validateRegisterPushToken, registerPushToken)
+    .delete(authorization, validateUnregisterPushToken, unregisterPushToken);
   routes.route("/list").get(authorization, requireAdmin, listUsers);
 
   return routes;

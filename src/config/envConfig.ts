@@ -17,6 +17,7 @@ class Config {
   public RAZORPAY_KEY_SECRET: string | undefined;
   public GOOGLE_PLAY_PACKAGE_NAME: string | undefined;
   public GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: string | undefined;
+  public EXPO_ACCESS_TOKEN: string | undefined;
 
   constructor() {
     this.NODE_ENV = process.env["NODE_ENV"];
@@ -35,6 +36,7 @@ class Config {
     this.RAZORPAY_KEY_SECRET = process.env["RAZORPAY_KEY_SECRET"];
     this.GOOGLE_PLAY_PACKAGE_NAME = process.env["GOOGLE_PLAY_PACKAGE_NAME"];
     this.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON = process.env["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"];
+    this.EXPO_ACCESS_TOKEN = process.env["EXPO_ACCESS_TOKEN"];
   }
 }
 
