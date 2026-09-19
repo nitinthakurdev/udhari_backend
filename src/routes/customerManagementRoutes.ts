@@ -2,17 +2,21 @@ import {
   connectCustomer,
   createCustomerManagement,
   disconnectCustomer,
+  connectDirectUser,
   deleteCustomerManagement,
   listCustomerManagement,
   listBusinessConnectionsForBusiness,
   listConnectionRequests,
+  listDirectUserConnections,
   listUsersConnectedToBusiness,
   searchCustomers,
+  searchDirectUsers,
   respondToRequest,
   updateCustomerManagement,
 } from "@/controllers/customerManagementController";
 import {
   validateConnectCustomer,
+  validateConnectUser,
   validateConnectionRequestResponse,
   validateCreateCustomerManagement,
   validateCustomerManagementUuid,
@@ -26,6 +30,12 @@ export const customerManagementRoutes = (): Router => {
   const routes = Router();
 
   routes.route("/list").get(listCustomerManagement);
+  routes.route("/connected-users-direct").get(listDirectUserConnections);
+  routes.route("/search-direct-users").get(searchDirectUsers);
+  routes.route("/connect-user").post(validateConnectUser, connectDirectUser);
+  routes
+    .route("/disconnect-user/:uuid")
+    .delete(validateCustomerManagementUuid, deleteCustomerManagement);
   routes.route("/requests").get(listConnectionRequests);
   routes.route("/requests/:uuid").patch(validateConnectionRequestResponse, respondToRequest);
   routes.route("/connected-users/:uuid").get(validateBusinessUuid, listUsersConnectedToBusiness);

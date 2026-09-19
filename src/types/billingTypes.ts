@@ -6,7 +6,7 @@ export interface IBillingSchema {
   current_outstanding: number | string;
   customer_id: number;
   customer_business_id: number | null;
-  business_id: number;
+  business_id: number | null;
   business_owner_id: number;
   start_date_of_month: string;
   end_date_of_month: string;
@@ -76,6 +76,7 @@ export interface IBillingPublic {
   customer: IBillingCustomer | null;
   customer_business: IBillingParty | null;
   business: IBillingParty | null;
+  business_owner: IBillingCustomer | null;
   payments: IBillingPaymentPublic[];
 }
 

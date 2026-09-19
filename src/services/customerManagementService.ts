@@ -64,10 +64,7 @@ export const findOwnedBusinessId = async (uuid: string, ownerId: number) => {
   return business?.id ?? null;
 };
 
-export const getBusinessConnectionsForBusiness = async (
-  ownerId: number,
-  businessUuid: string,
-) => {
+export const getBusinessConnectionsForBusiness = async (ownerId: number, businessUuid: string) => {
   const business = await businessModel.findOne({
     where: { uuid: businessUuid, created_by: ownerId },
     attributes: ["id"],
@@ -78,10 +75,7 @@ export const getBusinessConnectionsForBusiness = async (
     where: {
       request_status: "approved",
       source_business_id: { [Op.not]: null },
-      [Op.or]: [
-        { source_business_id: business.id },
-        { business_id: business.id },
-      ],
+      [Op.or]: [{ source_business_id: business.id }, { business_id: business.id }],
     },
     attributes: customerAttributes,
     include: customerIncludes,
@@ -147,6 +141,88 @@ export const getConnectedUsers = async (createdBy: number) =>
     include: customerIncludes,
     order: [["created_at", "DESC"]],
   });
+
+export const getDirectUserConnections = async (userId: number) =>
+  customerManagementModel.findAll({
+    where: {
+      business_id: null,
+      role: "user",
+      request_status: "approved",
+      [Op.or]: [{ created_by: userId }, { connect_user_id: userId }],
+    },
+    attributes: customerAttributes,
+    include: customerIncludes,
+    order: [["created_at", "DESC"]],
+  });
+
+export const findDirectUserConnection = async (firstUserId: number, secondUserId: number) =>
+  customerManagementModel.findOne({
+    where: {
+      business_id: null,
+      role: "user",
+      [Op.or]: [
+        { created_by: firstUserId, connect_user_id: secondUserId },
+        { created_by: secondUserId, connect_user_id: firstUserId },
+      ],
+    },
+  });
+
+export const searchUsers = async (
+  searchKey: string,
+  currentUserId: number,
+): Promise<ICustomerSearchResult[]> => {
+  const escapedSearchKey = searchKey.replace(/[\\%_]/g, "\\$&");
+  const phoneSearchKey = searchKey.replace(/\D/g, "");
+  const nameSearch = sequelize.where(
+    sequelize.fn(
+      "concat",
+      sequelize.col("first_name"),
+      " ",
+      sequelize.fn("coalesce", sequelize.col("last_name"), ""),
+    ),
+    { [Op.iLike]: `%${escapedSearchKey}%` },
+  );
+  const fullPhoneSearch = sequelize.where(
+    sequelize.fn(
+      "regexp_replace",
+      sequelize.fn(
+        "concat",
+        sequelize.fn("coalesce", sequelize.col("dial_code"), ""),
+        sequelize.col("phone"),
+      ),
+      "[^0-9]",
+      "",
+      "g",
+    ),
+    { [Op.like]: `%${phoneSearchKey}%` },
+  );
+  const users = await userModel.findAll({
+    where: {
+      id: { [Op.ne]: currentUserId },
+      [Op.or]: [
+        nameSearch,
+        { username: { [Op.iLike]: `%${escapedSearchKey}%` } },
+        { email: { [Op.iLike]: `%${escapedSearchKey}%` } },
+        { phone: { [Op.iLike]: `%${escapedSearchKey}%` } },
+        ...(phoneSearchKey ? [fullPhoneSearch] : []),
+      ],
+    },
+    attributes: ["id", ...userAttributes],
+    order: [["first_name", "ASC"]],
+    limit: 10,
+    raw: true,
+  });
+  return users.map((user) => ({
+    uuid: user.uuid,
+    user_id: user.id,
+    first_name: user.first_name,
+    last_name: user.last_name,
+    email: user.email,
+    username: user.username,
+    phone: user.phone,
+    dial_code: user.dial_code,
+  }));
+};
 
 export const getUsersConnectedToBusiness = async (
   businessOwnerId: number,
@@ -274,7 +350,7 @@ export const deleteCustomerConnectionByBusinessOwner = async (
     where: { uuid },
   });
 
-  if (!customer) return false;
+  if (!customer?.business_id) return false;
 
   const business = await businessModel.findOne({
     where: { id: customer.business_id, created_by: businessOwnerId },

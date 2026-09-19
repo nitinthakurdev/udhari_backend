@@ -24,7 +24,7 @@ const transitionsModel = sequelize.define<ITransitionModel>(
     },
     business_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     business_user_id: {
       type: DataTypes.INTEGER,
@@ -60,7 +60,7 @@ const transitionsModel = sequelize.define<ITransitionModel>(
     },
     unit_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     comment: {
       type: DataTypes.TEXT,
@@ -88,6 +88,14 @@ const transitionsModel = sequelize.define<ITransitionModel>(
     },
     deleted_at: {
       type: DataTypes.DATE,
+      allowNull: true,
+    },
+    recurring_config_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    schedule_occurrence_key: {
+      type: DataTypes.STRING(80),
       allowNull: true,
     },
   },

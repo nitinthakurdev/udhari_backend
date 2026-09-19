@@ -6,21 +6,26 @@ import {
   deleteCustomerManagementByUuid,
   findCustomerManagementByUuid,
   findOwnedBusinessId,
+  findDirectUserConnection,
   getBusinessConnectionsForBusiness,
   getConnectionRequests,
   getCustomerConnectionReferences,
   getConnectedUsers,
+  getDirectUserConnections,
   getUsersConnectedToBusiness,
   searchCustomersForBusiness,
+  searchUsers,
   respondToConnectionRequest,
   updateCustomerManagementByUuid,
 } from "@/services/customerManagementService";
 import type {
   IConnectCustomerPayload,
+  IConnectUserPayload,
   IConnectionRequestResponsePayload,
   ICustomerManagementPayload,
   ICustomerManagementUpdatePayload,
 } from "@/types/customerManagementTypes";
+import { userModel } from "@/models/userModel";
 import {
   AsyncHandler,
   BadRequestError,
@@ -45,6 +50,65 @@ export const listCustomerManagement = AsyncHandler(async (req, res): Promise<voi
   res
     .status(StatusCodes.OK)
     .json(response.ok(customers, { message: successMessages.CUSTOMER_MANAGEMENT.LIST }));
+});
+
+export const listDirectUserConnections = AsyncHandler(async (req, res): Promise<void> => {
+  if (!req.currentUser) {
+    throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
+  }
+  const connections = await getDirectUserConnections(req.currentUser.id);
+  res
+    .status(StatusCodes.OK)
+    .json(response.ok(connections, { message: successMessages.CUSTOMER_MANAGEMENT.LIST }));
+});
+
+export const searchDirectUsers = AsyncHandler(async (req, res): Promise<void> => {
+  if (!req.currentUser) {
+    throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
+  }
+  const searchKey = typeof req.query["key"] === "string" ? req.query["key"].trim() : "";
+  if (searchKey.length < 2) throw new BadRequestError("Enter at least two characters.");
+  const users = await searchUsers(searchKey, req.currentUser.id);
+  res
+    .status(StatusCodes.OK)
+    .json(response.ok(users, { message: successMessages.CUSTOMER_MANAGEMENT.LIST }));
+});
+
+export const connectDirectUser = AsyncHandler(async (req, res): Promise<void> => {
+  if (!req.currentUser) {
+    throw new UnauthorizedError(errorMessages.AUTHORIZATION.AUTHENTICATION_REQUIRED);
+  }
+  const data = req.body as IConnectUserPayload;
+  if (data.user_id === req.currentUser.id) {
+    throw new BadRequestError("You cannot connect with yourself.");
+  }
+  const user = await userModel.findByPk(data.user_id, { attributes: ["id"] });
+  if (!user) throw new NotFoundError(errorMessages.CUSTOMER_MANAGEMENT.USER_NOT_FOUND);
+  const existing = await findDirectUserConnection(req.currentUser.id, data.user_id);
+  if (existing) {
+    if (existing.request_status !== "rejected") {
+      throw new ConflictError(errorMessages.CUSTOMER_MANAGEMENT.ALREADY_EXISTS);
+    }
+    await existing.destroy();
+  }
+  const connection = await createCustomerManagementService({
+    connect_user_id: data.user_id,
+    business_id: null,
+    role: "user",
+    created_by: req.currentUser.id,
+    source_business_id: null,
+  });
+  notifyUsers([data.user_id], {
+    type: "connection.requested",
+    title: "New user request",
+    message: `${req.currentUser.first_name} wants to connect with you.`,
+    ...(connection ? { data: { connection_uuid: connection.uuid } } : {}),
+  });
+  res.status(StatusCodes.CREATED).json(
+    response.created(connection, {
+      message: successMessages.CUSTOMER_MANAGEMENT.REQUEST_SENT,
+    }),
+  );
 });
 
 export const listUsersConnectedToBusiness = AsyncHandler(async (req, res): Promise<void> => {
@@ -300,6 +364,9 @@ export const updateCustomerManagement = AsyncHandler(async (req, res): Promise<v
 
   const connectUserId = data.connect_user_id ?? currentCustomer.connect_user_id;
   const businessId = data.business_id ?? currentCustomer.business_id;
+  if (!businessId) {
+    throw new NotFoundError(errorMessages.CUSTOMER_MANAGEMENT.BUSINESS_NOT_FOUND);
+  }
   const references = await customerConnectionReferencesExist(connectUserId, businessId);
 
   if (!references.userExists) {

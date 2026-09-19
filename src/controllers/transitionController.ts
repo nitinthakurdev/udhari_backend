@@ -182,7 +182,10 @@ export const createTransition = AsyncHandler(async (req, res): Promise<void> => 
   }
 
   const unitBusinessId = businessAccess?.sourceBusinessId ?? data.business_id;
-  if (!unitBusinessId || !(await isUnitAvailableForBusiness(data.unit_id, unitBusinessId))) {
+  if (
+    !unitBusinessId ||
+    (data.unit_id !== null && !(await isUnitAvailableForBusiness(data.unit_id, unitBusinessId)))
+  ) {
     throw new NotFoundError(errorMessages.TRANSITION.UNIT_NOT_FOUND);
   }
 
@@ -265,7 +268,11 @@ export const createTransitions = AsyncHandler(async (req, res): Promise<void> =>
   }
 
   const unitBusinessId = businessAccess?.sourceBusinessId ?? data.business_id;
-  const unitIds = [...new Set(data.items.map((item) => item.unit_id))];
+  const unitIds = [
+    ...new Set(
+      data.items.map((item) => item.unit_id).filter((unitId): unitId is number => unitId !== null),
+    ),
+  ];
   const unitChecks = await Promise.all(
     unitIds.map((unitId) => isUnitAvailableForBusiness(unitId, unitBusinessId)),
   );
@@ -321,8 +328,10 @@ export const updateTransition = AsyncHandler(async (req, res): Promise<void> => 
   }
 
   const isApproval = data.request_status === "approved";
+  const isRejection = data.request_status === "rejected";
+  const isDecision = isApproval || isRejection;
   const proposalOwnerId = currentTransition.updated_by ?? currentTransition.created_by;
-  if (isApproval && proposalOwnerId === req.currentUser.id) {
+  if (isDecision && proposalOwnerId === req.currentUser.id) {
     throw new ForbiddenError(errorMessages.TRANSITION.APPROVAL_DENIED);
   }
   if (data.balance_type !== undefined && currentTransition.customer_business_id === null) {
@@ -330,10 +339,10 @@ export const updateTransition = AsyncHandler(async (req, res): Promise<void> => 
   }
 
   if (
-    data.unit_id !== undefined &&
+    data.unit_id != null &&
     !(await isUnitAvailableForBusiness(
       data.unit_id,
-      currentTransition.customer_business_id ?? currentTransition.business_id,
+      currentTransition.customer_business_id ?? currentTransition.business_id ?? 0,
     ))
   ) {
     throw new NotFoundError(errorMessages.TRANSITION.UNIT_NOT_FOUND);
@@ -341,7 +350,7 @@ export const updateTransition = AsyncHandler(async (req, res): Promise<void> => 
 
   const transition = await updateTransitionByUuid(uuid, req.currentUser.id, {
     ...data,
-    request_status: isApproval ? "approved" : "pending",
+    request_status: isApproval ? "approved" : isRejection ? "rejected" : "pending",
     updated_by: req.currentUser.id,
   });
 
@@ -351,10 +360,16 @@ export const updateTransition = AsyncHandler(async (req, res): Promise<void> => 
 
   notifyUsers(getOtherPartyUserIds(transition, req.currentUser.id), {
     type: "transition.updated",
-    title: isApproval ? "Transition approved" : "Transition updated",
+    title: isApproval
+      ? "Transition approved"
+      : isRejection
+        ? "Transition rejected"
+        : "Transition updated",
     message: isApproval
       ? `${req.currentUser.first_name} approved the ${transition.product_name} transition.`
-      : `${req.currentUser.first_name} updated the ${transition.product_name} transition.`,
+      : isRejection
+        ? `${req.currentUser.first_name} rejected the ${transition.product_name} transition.`
+        : `${req.currentUser.first_name} updated the ${transition.product_name} transition.`,
     data: { transition_uuid: transition.uuid },
   });
 

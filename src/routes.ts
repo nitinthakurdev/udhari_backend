@@ -13,6 +13,7 @@ import { userSubscriptionRoutes } from "./routes/userSubscriptionRoutes";
 import { paymentRoutes } from "./routes/paymentRoutes";
 import { billingRoutes } from "./routes/billingRoutes";
 import { requireActiveSubscription } from "./middlewares/subscriptionAuthorizationMiddleware";
+import { recurringTransactionConfigRoutes } from "./routes/recurringTransactionConfigRoutes";
 
 export const appRouter = (): Router => {
   const routes: Router = Router();
@@ -32,5 +33,11 @@ export const appRouter = (): Router => {
   routes.use("/user-subscriptions", authorization, userSubscriptionRoutes());
   routes.use("/payments", authorization, paymentRoutes());
   routes.use("/billings", authorization, requireActiveSubscription, billingRoutes());
+  routes.use(
+    "/recurring-configs",
+    authorization,
+    requireActiveSubscription,
+    recurringTransactionConfigRoutes(),
+  );
   return routes;
 };

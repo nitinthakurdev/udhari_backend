@@ -31,7 +31,7 @@ const billingModel = sequelize.define<IBillingModel>(
     },
     business_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     business_owner_id: {
       type: DataTypes.INTEGER,
@@ -102,6 +102,12 @@ const billingModel = sequelize.define<IBillingModel>(
         unique: true,
         fields: ["customer_business_id", "business_id", "start_date_of_month", "end_date_of_month"],
         where: { customer_business_id: { [Op.ne]: null } },
+      },
+      {
+        name: "billings_direct_user_pair_month_unique",
+        unique: true,
+        fields: ["customer_id", "business_owner_id", "start_date_of_month", "end_date_of_month"],
+        where: { business_id: null, customer_business_id: null },
       },
     ],
   },

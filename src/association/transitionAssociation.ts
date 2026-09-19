@@ -2,6 +2,7 @@ import { businessModel } from "@/models/businessModel";
 import { transitionsModel } from "@/models/transitionModel";
 import { userModel } from "@/models/userModel";
 import { unitModel } from "@/models/unitModel";
+import { recurringTransactionConfigModel } from "@/models/recurringTransactionConfigModel";
 
 userModel.hasMany(transitionsModel, {
   foreignKey: "customer_user_id",
@@ -41,6 +42,15 @@ transitionsModel.belongsTo(businessModel, {
 
 unitModel.hasMany(transitionsModel, { foreignKey: "unit_id", as: "transitions" });
 transitionsModel.belongsTo(unitModel, { foreignKey: "unit_id", as: "unit" });
+
+recurringTransactionConfigModel.hasMany(transitionsModel, {
+  foreignKey: "recurring_config_id",
+  as: "transitions",
+});
+transitionsModel.belongsTo(recurringTransactionConfigModel, {
+  foreignKey: "recurring_config_id",
+  as: "recurring_config",
+});
 
 userModel.hasMany(transitionsModel, {
   foreignKey: "created_by",

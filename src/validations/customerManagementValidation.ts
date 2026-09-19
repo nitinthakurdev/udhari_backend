@@ -42,6 +42,11 @@ const connectCustomerPayload = z.strictObject(
   { error: messages.UNKNOWN_FIELDS },
 );
 
+const connectUserPayload = z.strictObject(
+  { user_id: z.number().int().positive() },
+  { error: messages.UNKNOWN_FIELDS },
+);
+
 const requestResponsePayload = z.strictObject(
   {
     request_status: z.enum(["approved", "rejected"]),
@@ -67,6 +72,11 @@ export const validateCreateCustomerManagement = validateRequest({
 
 export const validateConnectCustomer = validateRequest({
   body: connectCustomerPayload,
+  errorMessage: messages.CREATE_VALIDATION_FAILED,
+});
+
+export const validateConnectUser = validateRequest({
+  body: connectUserPayload,
   errorMessage: messages.CREATE_VALIDATION_FAILED,
 });
 

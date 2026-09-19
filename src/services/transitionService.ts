@@ -38,6 +38,8 @@ const transitionAttributes = [
   "updated_by",
   "created_at",
   "updated_at",
+  "recurring_config_id",
+  "schedule_occurrence_key",
 ];
 
 const transitionUnitInclude = {
@@ -90,6 +92,8 @@ const toPublicTransition = (
     created_at: transition.created_at,
     updated_at: transition.updated_at,
     unit: transition.unit ? { name: transition.unit.name, code: transition.unit.code } : null,
+    recurring_config_id: transition.recurring_config_id,
+    schedule_occurrence_key: transition.schedule_occurrence_key,
   };
 };
 
@@ -212,17 +216,22 @@ const summarizeTransitions = (
       : inverseBalanceType(transition.balance_type);
     const personalAccountSummary = activeBusinessId === undefined;
     const partyType = personalAccountSummary
-      ? "business"
+      ? transition.business_id === null
+        ? "user"
+        : "business"
       : transition.customer_business_id === null
         ? "user"
         : "business";
     const partyId = personalAccountSummary
-      ? transition.business_id
+      ? (transition.business_id ??
+        (currentIsCustomer ? transition.business_user_id : transition.customer_user_id))
       : partyType === "user"
         ? transition.customer_user_id
         : currentIsCustomer
-          ? transition.business_id
-          : (transition.customer_business_id ?? transition.business_id);
+          ? (transition.business_id ?? transition.business_user_id)
+          : (transition.customer_business_id ??
+            transition.business_id ??
+            transition.business_user_id);
     const amount = Math.max(
       Number(transition.total_price) - (paidAmounts.get(transition.id) ?? 0),
       0,
@@ -355,7 +364,13 @@ export const isUnitAvailableForBusiness = async (
 export const createTransition = async (data: ITransitionCreateData): Promise<ITransitionPublic> =>
   sequelize.transaction(async (transaction) => {
     const transition = await transitionsModel.create(data, { transaction });
-    await ensureMonthlyBilling(data, transaction, transition.created_at);
+    if (data.business_id !== null) {
+      await ensureMonthlyBilling(
+        { ...data, business_id: data.business_id },
+        transaction,
+        transition.created_at,
+      );
+    }
     return toPublicTransition(transition.dataValues, data.created_by);
   });
 
@@ -375,7 +390,11 @@ export const createTransitions = async (
       );
     });
     await Promise.all(
-      [...billingGroups.values()].map((item) => ensureMonthlyBilling(item, transaction)),
+      [...billingGroups.values()].map((item) =>
+        item.business_id === null
+          ? Promise.resolve()
+          : ensureMonthlyBilling({ ...item, business_id: item.business_id }, transaction),
+      ),
     );
     return transitions.map((transition) =>
       toPublicTransition(transition.dataValues, transition.created_by ?? 0),
@@ -386,7 +405,7 @@ export const findTransitions = async (
   currentUserId: number,
   options: ITransitionListOptions,
 ): Promise<ITransitionPage> => {
-  const { rows, count } = await transitionsModel.findAndCountAll({
+  const found = await transitionsModel.findAll({
     where: {
       [Op.and]: [
         getAccessibleWhere(currentUserId),
@@ -396,23 +415,16 @@ export const findTransitions = async (
     },
     attributes: transitionAttributes,
     include: [transitionUnitInclude],
-    ...(options.paginated
-      ? {
-          limit: options.limit,
-          offset: (options.page - 1) * options.limit,
-        }
-      : {}),
     order: [
       ["created_at", "DESC"],
       ["id", "DESC"],
     ],
   });
-
-  return await toPaginationResult(
-    rows.map((transition) => transition.dataValues),
-    count,
-    currentUserId,
-  );
+  const visible = found.map((transition) => transition.dataValues);
+  const rows = options.paginated
+    ? visible.slice((options.page - 1) * options.limit, options.page * options.limit)
+    : visible;
+  return await toPaginationResult(rows, visible.length, currentUserId);
 };
 
 export const findTransitionsForBusiness = async (
@@ -427,7 +439,7 @@ export const findTransitionsForBusiness = async (
 
   if (!business) return undefined;
 
-  const { rows, count } = await transitionsModel.findAndCountAll({
+  const found = await transitionsModel.findAll({
     where: {
       [Op.and]: [
         {
@@ -439,24 +451,16 @@ export const findTransitionsForBusiness = async (
     },
     attributes: transitionAttributes,
     include: [transitionUnitInclude],
-    ...(options.paginated
-      ? {
-          limit: options.limit,
-          offset: (options.page - 1) * options.limit,
-        }
-      : {}),
     order: [
       ["created_at", "DESC"],
       ["id", "DESC"],
     ],
   });
-
-  return await toPaginationResult(
-    rows.map((transition) => transition.dataValues),
-    count,
-    businessOwnerId,
-    business.id,
-  );
+  const visible = found.map((transition) => transition.dataValues);
+  const rows = options.paginated
+    ? visible.slice((options.page - 1) * options.limit, options.page * options.limit)
+    : visible;
+  return await toPaginationResult(rows, visible.length, businessOwnerId, business.id);
 };
 
 export const getTransitionBalanceSummary = async (
@@ -555,7 +559,7 @@ export const updateTransitionByUuid = async (
     const becameApproved =
       transition.request_status !== "approved" && data.request_status === "approved";
     const updatedTransition = await transition.update(data, { transaction });
-    if (becameApproved) {
+    if (becameApproved && updatedTransition.business_id !== null) {
       await addTransitionToOutstanding(updatedTransition.dataValues, currentUserId, transaction);
     }
     const paidAmounts = await getPaidAmounts([updatedTransition.id]);

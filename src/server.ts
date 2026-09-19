@@ -25,6 +25,7 @@ import "./association/customerManagementAssociation";
 import "./association/transitionAssociation";
 import "./association/billingAssociation";
 import "./association/userSubscriptionAssociation";
+import "./association/recurringTransactionConfigAssociation";
 import { config } from "./config/envConfig";
 import { initializeSocket } from "./socket";
 

@@ -11,9 +11,9 @@ export interface ITransitionSchema {
   uuid: string;
   customer_user_id: number;
   customer_business_id: number | null;
-  business_id: number;
+  business_id: number | null;
   business_user_id: number;
-  unit_id: number;
+  unit_id: number | null;
   product_name: string;
   product_qty: number | string;
   product_unit_price: number | string;
@@ -27,6 +27,8 @@ export interface ITransitionSchema {
   created_at: Date;
   updated_at: Date;
   deleted_at: Date | null;
+  recurring_config_id: number | null;
+  schedule_occurrence_key: string | null;
 }
 
 export type TransitionCreationSchema = Optional<
@@ -45,6 +47,8 @@ export type TransitionCreationSchema = Optional<
   | "created_at"
   | "updated_at"
   | "deleted_at"
+  | "recurring_config_id"
+  | "schedule_occurrence_key"
 >;
 
 export interface ITransitionModel
@@ -52,29 +56,37 @@ export interface ITransitionModel
 
 export type ITransitionCreatePayload = Pick<
   ITransitionSchema,
-  "business_id" | "unit_id" | "product_name" | "product_unit_price" | "total_price"
+  "product_name" | "product_unit_price" | "total_price"
 > &
   Partial<
     Pick<ITransitionSchema, "customer_user_id" | "customer_business_id" | "product_qty" | "comment">
   > & {
+    business_id: number;
+    unit_id: number | null;
     customer_business_uuid?: string;
     balance_type?: TransitionBalanceType;
   };
 
-export type ITransitionCreateData = ITransitionCreatePayload & {
+export type ITransitionCreateData = Omit<ITransitionCreatePayload, "business_id" | "unit_id"> & {
+  business_id: number | null;
+  unit_id: number | null;
   customer_user_id: number;
   customer_business_id: number | null;
   business_user_id: number;
   request_status: "pending";
   balance_type: TransitionBalanceType;
   created_by: number;
+  recurring_config_id?: number | null;
+  schedule_occurrence_key?: string | null;
 };
 
 export type ITransitionBatchItem = Pick<
   ITransitionSchema,
-  "unit_id" | "product_name" | "product_unit_price" | "total_price"
+  "product_name" | "product_unit_price" | "total_price"
 > &
-  Partial<Pick<ITransitionSchema, "product_qty" | "comment">>;
+  Partial<Pick<ITransitionSchema, "product_qty" | "comment">> & {
+    unit_id: number | null;
+  };
 
 export type ITransitionBatchCreatePayload = Pick<
   ITransitionCreatePayload,
@@ -117,6 +129,8 @@ export type ITransitionPublic = Pick<
   | "updated_by"
   | "created_at"
   | "updated_at"
+  | "recurring_config_id"
+  | "schedule_occurrence_key"
 > & {
   product_unit_price: number;
   total_price: number;

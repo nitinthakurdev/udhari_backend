@@ -59,15 +59,18 @@ const getBillingDateRange = (
 };
 
 export const ensureMonthlyBilling = async (
-  data: Pick<
-    ITransitionSchema,
-    | "customer_user_id"
-    | "customer_business_id"
-    | "business_id"
-    | "business_user_id"
-    | "balance_type"
-    | "created_by"
-  >,
+  data: Omit<
+    Pick<
+      ITransitionSchema,
+      | "customer_user_id"
+      | "customer_business_id"
+      | "business_id"
+      | "business_user_id"
+      | "balance_type"
+      | "created_by"
+    >,
+    "business_id"
+  > & { business_id: number | null },
   transaction: Transaction,
   date = new Date(),
 ) => {
@@ -143,27 +146,37 @@ const getApprovedTransitionsForBilling = async (
   transitionsModel.findAll({
     where: {
       [Op.or]:
-        billing.customer_business_id === null
+        billing.business_id === null
           ? [
               {
                 customer_user_id: billing.customer_id,
                 customer_business_id: null,
-                business_id: billing.business_id,
+                business_id: null,
+                business_user_id: billing.business_owner_id,
                 balance_type: "payable",
               },
             ]
-          : [
-              {
-                customer_business_id: billing.customer_business_id,
-                business_id: billing.business_id,
-                balance_type: "payable",
-              },
-              {
-                customer_business_id: billing.business_id,
-                business_id: billing.customer_business_id,
-                balance_type: "receivable",
-              },
-            ],
+          : billing.customer_business_id === null
+            ? [
+                {
+                  customer_user_id: billing.customer_id,
+                  customer_business_id: null,
+                  business_id: billing.business_id,
+                  balance_type: "payable",
+                },
+              ]
+            : [
+                {
+                  customer_business_id: billing.customer_business_id,
+                  business_id: billing.business_id,
+                  balance_type: "payable",
+                },
+                {
+                  customer_business_id: billing.business_id,
+                  business_id: billing.customer_business_id,
+                  balance_type: "receivable",
+                },
+              ],
       request_status: "approved",
       created_at: getBillingDateRange(billing),
     },
@@ -197,17 +210,27 @@ const getBillingAmounts = async (billing: IBillingSchema, transaction?: Transact
 };
 
 const toPublicBilling = async (billing: IBillingSchema): Promise<IBillingPublic> => {
-  const [{ transitions, payments, totalCents, paidCents }, customer, customerBusiness, business] =
-    await Promise.all([
-      getBillingAmounts(billing),
-      userModel.findByPk(billing.customer_id, {
-        attributes: ["uuid", "first_name", "last_name", "username"],
-      }),
-      billing.customer_business_id
-        ? businessModel.findByPk(billing.customer_business_id, { attributes: ["uuid", "name"] })
-        : null,
-      businessModel.findByPk(billing.business_id, { attributes: ["uuid", "name"] }),
-    ]);
+  const [
+    { transitions, payments, totalCents, paidCents },
+    customer,
+    customerBusiness,
+    business,
+    businessOwner,
+  ] = await Promise.all([
+    getBillingAmounts(billing),
+    userModel.findByPk(billing.customer_id, {
+      attributes: ["uuid", "first_name", "last_name", "username"],
+    }),
+    billing.customer_business_id
+      ? businessModel.findByPk(billing.customer_business_id, { attributes: ["uuid", "name"] })
+      : null,
+    billing.business_id
+      ? businessModel.findByPk(billing.business_id, { attributes: ["uuid", "name"] })
+      : null,
+    userModel.findByPk(billing.business_owner_id, {
+      attributes: ["uuid", "first_name", "last_name", "username"],
+    }),
+  ]);
   const transitionsById = new Map(transitions.map((transition) => [transition.id, transition]));
   const outstandingCents = Math.max(totalCents - paidCents, 0);
   const paymentStatus =
@@ -238,6 +261,14 @@ const toPublicBilling = async (billing: IBillingSchema): Promise<IBillingPublic>
       ? { uuid: customerBusiness.uuid, name: customerBusiness.name }
       : null,
     business: business ? { uuid: business.uuid, name: business.name } : null,
+    business_owner: businessOwner
+      ? {
+          uuid: businessOwner.uuid,
+          first_name: businessOwner.first_name,
+          last_name: businessOwner.last_name,
+          username: businessOwner.username,
+        }
+      : null,
     payments: payments.map((payment) => {
       const transition = transitionsById.get(payment.transition_id);
       return {

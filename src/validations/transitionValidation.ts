@@ -39,7 +39,9 @@ const fields = {
     .number({ error: messages.TOTAL_PRICE_REQUIRED })
     .nonnegative({ error: messages.TOTAL_PRICE_INVALID })
     .max(9_999_999_999.99, { error: messages.TOTAL_PRICE_MAX }),
-  request_status: z.literal("approved", { error: messages.REQUEST_STATUS_INVALID }),
+  request_status: z.enum(["approved", "rejected"], {
+    error: messages.REQUEST_STATUS_INVALID,
+  }),
   balance_type: z.enum(["payable", "receivable"], {
     error: messages.BALANCE_TYPE_INVALID,
   }),
@@ -76,7 +78,7 @@ const createPayload = z
       customer_user_id: fields.customer_user_id.optional(),
       customer_business_id: fields.customer_business_id.optional(),
       business_id: fields.business_id,
-      unit_id: fields.unit_id,
+      unit_id: fields.unit_id.nullable(),
       product_name: fields.product_name,
       product_qty: fields.product_qty.optional(),
       product_unit_price: fields.product_unit_price,
@@ -94,7 +96,7 @@ const createPayload = z
 
 const batchItem = z.strictObject(
   {
-    unit_id: fields.unit_id,
+    unit_id: fields.unit_id.nullable(),
     product_name: fields.product_name,
     product_qty: fields.product_qty.optional(),
     product_unit_price: fields.product_unit_price,
@@ -124,7 +126,7 @@ const updatePayload = z
   .strictObject(
     {
       product_name: fields.product_name.optional(),
-      unit_id: fields.unit_id.optional(),
+      unit_id: fields.unit_id.nullable().optional(),
       product_qty: fields.product_qty.optional(),
       product_unit_price: fields.product_unit_price.optional(),
       total_price: fields.total_price.optional(),
