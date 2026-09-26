@@ -56,6 +56,46 @@ type TransitionWithUnit = ITransitionSchema & {
 const inverseBalanceType = (balanceType: ITransitionSchema["balance_type"]) =>
   balanceType === "payable" ? "receivable" : "payable";
 
+const addBalancePartyNames = async (
+  summary: ITransitionBalanceSummary,
+): Promise<ITransitionBalanceSummary> => {
+  const userIds = summary.parties
+    .filter((party) => party.party_type === "user")
+    .map((party) => party.party_id);
+  const businessIds = summary.parties
+    .filter((party) => party.party_type === "business")
+    .map((party) => party.party_id);
+  const [users, businesses] = await Promise.all([
+    userIds.length
+      ? userModel.findAll({
+          where: { id: { [Op.in]: userIds } },
+          attributes: ["id", "first_name", "last_name"],
+        })
+      : [],
+    businessIds.length
+      ? businessModel.findAll({
+          where: { id: { [Op.in]: businessIds } },
+          attributes: ["id", "name"],
+        })
+      : [],
+  ]);
+  const userNames = new Map(
+    users.map((user) => [user.id, [user.first_name, user.last_name].filter(Boolean).join(" ")]),
+  );
+  const businessNames = new Map(businesses.map((business) => [business.id, business.name]));
+
+  return {
+    ...summary,
+    parties: summary.parties.map((party) => ({
+      ...party,
+      party_name:
+        (party.party_type === "user"
+          ? userNames.get(party.party_id)
+          : businessNames.get(party.party_id)) ?? "",
+    })),
+  };
+};
+
 const toPublicTransition = (
   transition: TransitionWithUnit,
   currentUserId: number,
@@ -137,6 +177,13 @@ const getPartyWhere = (
 ): WhereOptions<ITransitionSchema> => {
   if (!options.partyType || options.partyId === undefined) return {};
   if (options.partyType === "user") {
+    if (activeBusinessId === undefined) {
+      return {
+        business_id: null,
+        customer_business_id: null,
+        [Op.or]: [{ customer_user_id: options.partyId }, { business_user_id: options.partyId }],
+      };
+    }
     return {
       customer_user_id: options.partyId,
       customer_business_id: null,
@@ -243,6 +290,7 @@ const summarizeTransitions = (
     grouped.set(key, {
       party_type: partyType,
       party_id: partyId,
+      party_name: "",
       account_type: accountType,
       amount: (existing?.amount ?? 0) + amount,
     });
@@ -473,6 +521,7 @@ export const getTransitionBalanceSummary = async (
     attributes: [
       "id",
       "customer_user_id",
+      "business_user_id",
       "customer_business_id",
       "business_id",
       "balance_type",
@@ -481,10 +530,12 @@ export const getTransitionBalanceSummary = async (
   });
 
   const values = transitions.map((transition) => transition.dataValues);
-  return summarizeTransitions(
-    values,
-    currentUserId,
-    await getPaidAmounts(values.map((transition) => transition.id)),
+  return addBalancePartyNames(
+    summarizeTransitions(
+      values,
+      currentUserId,
+      await getPaidAmounts(values.map((transition) => transition.id)),
+    ),
   );
 };
 
@@ -506,6 +557,7 @@ export const getTransitionBalanceSummaryForBusiness = async (
     attributes: [
       "id",
       "customer_user_id",
+      "business_user_id",
       "customer_business_id",
       "business_id",
       "balance_type",
@@ -514,11 +566,13 @@ export const getTransitionBalanceSummaryForBusiness = async (
   });
 
   const values = transitions.map((transition) => transition.dataValues);
-  return summarizeTransitions(
-    values,
-    businessOwnerId,
-    await getPaidAmounts(values.map((transition) => transition.id)),
-    business.id,
+  return addBalancePartyNames(
+    summarizeTransitions(
+      values,
+      businessOwnerId,
+      await getPaidAmounts(values.map((transition) => transition.id)),
+      business.id,
+    ),
   );
 };
 

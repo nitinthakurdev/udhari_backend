@@ -168,6 +168,7 @@ export interface ITransitionPage {
 export interface ITransitionBalanceParty {
   party_type: "user" | "business";
   party_id: number;
+  party_name: string;
   account_type: TransitionBalanceType;
   amount: number;
 }
