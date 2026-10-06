@@ -442,10 +442,18 @@ export const extendBillingDueDate = async (
   return { status: "ok", billing: await toPublicBilling(billing.dataValues) } as const;
 };
 
-export const generateBilling = async (uuid: string, dueDate: string, currentUserId: number) => {
+export const generateBilling = async (
+  uuid: string,
+  dueDate: string,
+  currentUserId: number,
+  allowCustomerGeneration = false,
+) => {
   const billing = await billingModel.findOne({ where: { uuid } });
   if (!billing) return { status: "not_found" } as const;
-  if (billing.business_owner_id !== currentUserId) return { status: "forbidden" } as const;
+  const canGenerate =
+    billing.business_owner_id === currentUserId ||
+    (allowCustomerGeneration && billing.customer_id === currentUserId && !billing.generated_at);
+  if (!canGenerate) return { status: "forbidden" } as const;
   if (dueDate < billing.end_date_of_month) return { status: "invalid_date" } as const;
 
   await billing.update({

@@ -131,10 +131,13 @@ export const generateMonthlyBilling = AsyncHandler(async (req, res): Promise<voi
     req.params["uuid"] as string,
     (req.body as IGenerateBillingPayload).due_date,
     req.currentUser.id,
+    req.currentUser.user_role?.slug === "user",
   );
   if (result.status === "not_found") throw new NotFoundError("Billing statement not found.");
   if (result.status === "forbidden") {
-    throw new ForbiddenError("Only the business owner can generate the bill.");
+    throw new ForbiddenError(
+      "Only the business owner or billed user can generate an ungenerated bill.",
+    );
   }
   if (result.status === "invalid_date") {
     throw new BadRequestError("Due date cannot be before the end of the billing month.");
