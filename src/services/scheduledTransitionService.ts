@@ -21,7 +21,7 @@ interface ScheduledTransitionAction {
   action: "edit" | "approved" | "rejected";
 }
 
-const participantIds = async (config: IRecurringTransactionConfigSchema) => {
+const resolveScheduledTransitionParties = async (config: IRecurringTransactionConfigSchema) => {
   const [sourceBusiness, targetBusiness] = await Promise.all([
     config.business_id
       ? businessModel.findByPk(config.business_id, { attributes: ["created_by"] })
@@ -32,7 +32,30 @@ const participantIds = async (config: IRecurringTransactionConfigSchema) => {
   ]);
   const creatorId = config.created_by ?? sourceBusiness?.created_by ?? null;
   const attachedUserId = config.customer_id ?? targetBusiness?.created_by ?? null;
-  return { creatorId, attachedUserId };
+  if (!creatorId || !attachedUserId) return null;
+
+  // A personal user scheduling with a business is represented like every other
+  // user-to-business transition: the user is the customer and the target is the
+  // creditor business. Direct user and business-owned schedules already store
+  // their creditor side in business_id/created_by respectively.
+  const userToBusiness = config.business_id === null && config.customer_business_id !== null;
+  return {
+    creatorId,
+    attachedUserId,
+    transitionParties: userToBusiness
+      ? {
+          business_id: config.customer_business_id,
+          customer_user_id: creatorId,
+          customer_business_id: null,
+          business_user_id: attachedUserId,
+        }
+      : {
+          business_id: config.business_id,
+          customer_user_id: attachedUserId,
+          customer_business_id: config.customer_business_id,
+          business_user_id: creatorId,
+        },
+  };
 };
 
 export const sendScheduledTransitionNow = async (
@@ -45,17 +68,15 @@ export const sendScheduledTransitionNow = async (
   });
   if (!configModel) return undefined;
   const config = configModel.dataValues;
-  const { creatorId, attachedUserId } = await participantIds(config);
-  if (!creatorId || !attachedUserId || ![creatorId, attachedUserId].includes(actorId)) {
+  const parties = await resolveScheduledTransitionParties(config);
+  if (!parties || ![parties.creatorId, parties.attachedUserId].includes(actorId)) {
     return undefined;
   }
+  const { creatorId, attachedUserId, transitionParties } = parties;
 
   try {
     const created = await createTransition({
-      business_id: config.business_id,
-      customer_user_id: attachedUserId,
-      customer_business_id: config.customer_business_id,
-      business_user_id: creatorId,
+      ...transitionParties,
       unit_id: data.unit_id,
       product_name: data.name,
       product_qty: data.quantity ?? 1,

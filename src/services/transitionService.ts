@@ -412,13 +412,7 @@ export const isUnitAvailableForBusiness = async (
 export const createTransition = async (data: ITransitionCreateData): Promise<ITransitionPublic> =>
   sequelize.transaction(async (transaction) => {
     const transition = await transitionsModel.create(data, { transaction });
-    if (data.business_id !== null) {
-      await ensureMonthlyBilling(
-        { ...data, business_id: data.business_id },
-        transaction,
-        transition.created_at,
-      );
-    }
+    await ensureMonthlyBilling(data, transaction, transition.created_at);
     return toPublicTransition(transition.dataValues, data.created_by);
   });
 
@@ -438,11 +432,7 @@ export const createTransitions = async (
       );
     });
     await Promise.all(
-      [...billingGroups.values()].map((item) =>
-        item.business_id === null
-          ? Promise.resolve()
-          : ensureMonthlyBilling({ ...item, business_id: item.business_id }, transaction),
-      ),
+      [...billingGroups.values()].map((item) => ensureMonthlyBilling(item, transaction)),
     );
     return transitions.map((transition) =>
       toPublicTransition(transition.dataValues, transition.created_by ?? 0),
@@ -613,7 +603,7 @@ export const updateTransitionByUuid = async (
     const becameApproved =
       transition.request_status !== "approved" && data.request_status === "approved";
     const updatedTransition = await transition.update(data, { transaction });
-    if (becameApproved && updatedTransition.business_id !== null) {
+    if (becameApproved) {
       await addTransitionToOutstanding(updatedTransition.dataValues, currentUserId, transaction);
     }
     const paidAmounts = await getPaidAmounts([updatedTransition.id]);
